@@ -14,6 +14,9 @@ This project implements the [CFRG](https://irtf.org/cfrg)'s [draft-barnes-cfrg-h
 
 See [section 6](https://tools.ietf.org/html/draft-barnes-cfrg-hpke-00#section-6) for reference.
 
+### Install
+* Run `go get -u https://github.com/danielhavir/go-hpke`
+
 ## Example
 ```go
 package main
