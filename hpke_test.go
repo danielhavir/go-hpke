@@ -15,13 +15,15 @@ func testHPKE(t *testing.T, params *Params) {
 
 	msg := make([]byte, 64)
 	rand.Read(msg)
+	aad := make([]byte, 16)
+	rand.Read(aad)
 
-	ct, ephemeral, err := Encrypt(params, random, pub, msg, nil, nil)
+	ct, ephemeral, err := Encrypt(params, random, pub, msg, aad, nil)
 	if err != nil {
 		t.Error(err)
 	}
 
-	pt, err := Decrypt(params, prv, ephemeral, ct, nil, nil)
+	pt, err := Decrypt(params, prv, ephemeral, ct, aad, nil)
 	if err != nil {
 		t.Error(err)
 	}
