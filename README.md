@@ -1,3 +1,5 @@
+![stability-wip](https://img.shields.io/badge/stability-work_in_progress-lightgrey.svg)
+
 # HPKE: Hybrid Public Key Encryption
 This project implements the [CFRG](https://irtf.org/cfrg)'s [draft-barnes-cfrg-hpke-00](https://datatracker.ietf.org/doc/draft-barnes-cfrg-hpke/), Hybrid Public Key Encryption (HPKE).
 

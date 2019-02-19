@@ -8,7 +8,6 @@ import (
 	"errors"
 	"hash"
 	"io"
-	"math/big"
 
 	"golang.org/x/crypto/chacha20poly1305"
 )
@@ -67,21 +66,6 @@ func decryptSymmetric(cphr cipher.AEAD, ct, aad []byte) (pt []byte, err error) {
 	nonce := ct[:cphr.NonceSize()]
 	pt, err = cphr.Open(nil, nonce, ct[cphr.NonceSize():], aad)
 	return
-}
-
-// Marshal converts a point into the uncompressed form specified in section 4.3.6 of ANSI X9.62.
-// Reference: https://golang.org/src/crypto/elliptic/elliptic.go?s=8258:8305#L296
-func marshal(params *Params, x, y *big.Int) []byte {
-	byteLen := (params.bitSize + 7) >> 3
-
-	ret := make([]byte, 1+2*byteLen)
-	ret[0] = 4 // uncompressed point
-
-	xBytes := x.Bytes()
-	copy(ret[1+byteLen-len(xBytes):], xBytes)
-	yBytes := y.Bytes()
-	copy(ret[1+2*byteLen-len(yBytes):], yBytes)
-	return ret
 }
 
 // Encrypt is a function for encryption
