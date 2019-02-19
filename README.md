@@ -34,28 +34,28 @@ func main() {
     params := hpke.X25519_SHA256_ChaCha20Poly1305
     
     random := rand.Reader
-	prv, pub, err := hpke.GenerateKeypair(params, random)
-	if err != nil {
-		panic(fmt.Sprintf("failed to generate key pair: %s\n", err))
-	}
+    prv, pub, err := hpke.GenerateKeypair(params, random)
+    if err != nil {
+        panic(fmt.Sprintf("failed to generate key pair: %s\n", err))
+    }
 
-	msg := ...
+    msg := ...
 
-	ciphertext, ephemeral, err := hpke.Encrypt(params, random, pub, msg, nil, nil)
-	if err != nil {
-		fmt.Sprintf("failed to encrypt message: %s\n", err)
-	}
+    ciphertext, ephemeral, err := hpke.Encrypt(params, random, pub, msg, nil, nil)
+    if err != nil {
+        fmt.Sprintf("failed to encrypt message: %s\n", err)
+    }
 
-	plaintext, err := hpke.Decrypt(params, prv, ephemeral, ciphertext, nil, nil)
-	if err != nil {
-		panic(fmt.Sprintf("failed to decrypt ciphertext: %s\n", err))
-	}
+    plaintext, err := hpke.Decrypt(params, prv, ephemeral, ciphertext, nil, nil)
+    if err != nil {
+        panic(fmt.Sprintf("failed to decrypt ciphertext: %s\n", err))
+    }
 
-	if !bytes.Equal(msg, plaintext) {
-		panic("authentication failed")
-	} else {
-		fmt.Println("all good")
-	}
+    if !bytes.Equal(msg, plaintext) {
+        panic("authentication failed")
+    } else {
+        fmt.Println("all good")
+    }
 }
 ```
 
