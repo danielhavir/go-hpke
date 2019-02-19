@@ -43,7 +43,7 @@ func main() {
 
     ciphertext, ephemeral, err := hpke.Encrypt(params, random, pub, msg, nil, nil)
     if err != nil {
-        fmt.Sprintf("failed to encrypt message: %s\n", err)
+        panic(fmt.Sprintf("failed to encrypt message: %s\n", err))
     }
 
     plaintext, err := hpke.Decrypt(params, prv, ephemeral, ciphertext, nil, nil)

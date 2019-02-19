@@ -4,6 +4,7 @@ import (
 	"crypto"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/rand"
 	"errors"
 	"hash"
 	"io"
@@ -19,10 +20,10 @@ func GenerateKeypair(params *Params, random io.Reader) (private crypto.PrivateKe
 }
 
 // Key-Derivation Function
-func kdf(params *Params, hash hash.Hash, shared, s1 []byte) []byte {
+func kdf(params *Params, hash hash.Hash, shared, salt []byte) []byte {
 	hash.Write(shared)
-	if s1 != nil {
-		hash.Write(s1)
+	if salt != nil {
+		hash.Write(salt)
 	}
 	key := hash.Sum(nil)
 	hash.Reset()
@@ -69,8 +70,15 @@ func decryptSymmetric(cphr cipher.AEAD, ct, aad []byte) (pt []byte, err error) {
 }
 
 // Encrypt is a function for encryption
-func Encrypt(params *Params, rand io.Reader, pkR crypto.PublicKey, pt, aad, salt []byte) (ct []byte, pkE crypto.PublicKey, err error) {
-	skE, pkE, err := params.curve.GenerateKey(rand)
+// Optional arguments:
+//    `random` is optional. If `nil` crypto/rand.Reader is used
+//    `aad` and `salt` are optional.
+func Encrypt(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad, salt []byte) (ct []byte, pkE crypto.PublicKey, err error) {
+	if random == nil {
+		random = rand.Reader
+	}
+
+	skE, pkE, err := params.curve.GenerateKey(random)
 	if err != nil {
 		return
 	}
@@ -89,7 +97,7 @@ func Encrypt(params *Params, rand io.Reader, pkR crypto.PublicKey, pt, aad, salt
 	if err != nil {
 		return
 	}
-	ct, err = encryptSymmetric(rand, cphr, pt, aad)
+	ct, err = encryptSymmetric(random, cphr, pt, aad)
 	if err != nil {
 		return
 	}
