@@ -4,7 +4,6 @@ import (
 	"crypto"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
 	"errors"
 	"hash"
 	"io"
@@ -13,8 +12,9 @@ import (
 )
 
 // GenerateKeypair generates a key pair for a given parameter set.
-func GenerateKeypair(params *Params) (private crypto.PrivateKey, public crypto.PublicKey, err error) {
-	private, public, err = params.curve.GenerateKey(rand.Reader)
+// Argument `random` is optional. If `nil` crypto/rand.Reader is used
+func GenerateKeypair(params *Params, random io.Reader) (private crypto.PrivateKey, public crypto.PublicKey, err error) {
+	private, public, err = params.curve.GenerateKey(random)
 	return
 }
 

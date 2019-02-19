@@ -31,16 +31,17 @@ import (
 )
 
 func main() {
-	params := hpke.X25519_SHA256_ChaCha20Poly1305
-
-	prv, pub, err := hpke.GenerateKeypair(params)
+    params := hpke.X25519_SHA256_ChaCha20Poly1305
+    
+    random := rand.Reader
+	prv, pub, err := hpke.GenerateKeypair(params, random)
 	if err != nil {
 		panic(fmt.Sprintf("failed to generate key pair: %s\n", err))
 	}
 
 	msg := ...
 
-	ciphertext, ephemeral, err := hpke.Encrypt(params, rand.Reader, pub, msg, nil, nil)
+	ciphertext, ephemeral, err := hpke.Encrypt(params, random, pub, msg, nil, nil)
 	if err != nil {
 		fmt.Sprintf("failed to encrypt message: %s\n", err)
 	}

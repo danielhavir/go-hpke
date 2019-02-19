@@ -7,7 +7,8 @@ import (
 )
 
 func testHPKE(t *testing.T, params *Params) {
-	prv, pub, err := GenerateKeypair(params)
+	random := rand.Reader
+	prv, pub, err := GenerateKeypair(params, random)
 	if err != nil {
 		t.Error(err)
 	}
@@ -15,7 +16,7 @@ func testHPKE(t *testing.T, params *Params) {
 	msg := make([]byte, 64)
 	rand.Read(msg)
 
-	ct, ephemeral, err := Encrypt(params, rand.Reader, pub, msg, nil, nil)
+	ct, ephemeral, err := Encrypt(params, random, pub, msg, nil, nil)
 	if err != nil {
 		t.Error(err)
 	}
