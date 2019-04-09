@@ -85,7 +85,7 @@ func Encrypt(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad, sa
 
 	hashFunc := params.hashFn()
 	keySize := hashFunc.Size() / 2
-	if 2*keySize > (params.bitSize+7)>>3 {
+	if 2*keySize > (params.curve.Params().BitSize+7)>>3 {
 		err = errors.New("shared key length is too long")
 		return
 	}
@@ -108,7 +108,7 @@ func Encrypt(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad, sa
 func Decrypt(params *Params, skR crypto.PrivateKey, pkE crypto.PublicKey, ct, aad, salt []byte) (pt []byte, err error) {
 	hashFunc := params.hashFn()
 	keySize := hashFunc.Size() / 2
-	if 2*keySize > (params.bitSize+7)>>3 {
+	if 2*keySize > (params.curve.Params().BitSize+7)>>3 {
 		err = errors.New("shared key length is too long")
 		return
 	}
