@@ -6,7 +6,6 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"errors"
-	"fmt"
 	"hash"
 	"io"
 	"math/big"
@@ -117,6 +116,9 @@ func decap(params *Params, skR crypto.PrivateKey, enc []byte) (shared []byte, er
 	if err != nil {
 		return
 	}
+	if err = params.curve.Check(pkE); err != nil {
+		return
+	}
 	shared = params.curve.ComputeSecret(skR, pkE)
 	return
 }
@@ -138,6 +140,9 @@ func authEncap(params *Params, pkR crypto.PublicKey, skI crypto.PrivateKey, rand
 func authDecap(params *Params, skR crypto.PrivateKey, pkI crypto.PublicKey, enc []byte) (shared []byte, err error) {
 	pkE, err := Unmarshall(params, enc)
 	if err != nil {
+		return
+	}
+	if err = params.curve.Check(pkE); err != nil {
 		return
 	}
 	shared = append(params.curve.ComputeSecret(skR, pkE), params.curve.ComputeSecret(skR, pkI)...)
@@ -213,12 +218,13 @@ func setupAuth(params *Params, pkR, pkI crypto.PublicKey, shared, enc, info []by
 
 // setupBaseI is the setup for the Initiator in the base mode
 // Section 6.1. https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6.1
-func setupBaseI(params *Params, pkR crypto.PublicKey, random io.Reader, info []byte) (key, nonce []byte, err error) {
+func setupBaseI(params *Params, pkR crypto.PublicKey, random io.Reader, info []byte) (key, nonce, enc []byte, err error) {
 	shared, enc, err := encap(params, pkR, random)
 	if err != nil {
 		return
 	}
-	return setupBase(params, pkR, shared, enc, info)
+	key, nonce, err = setupBase(params, pkR, shared, enc, info)
+	return
 }
 
 // setupBaseR is the setup for the Receiver in the base mode
@@ -238,7 +244,8 @@ func setupPSKI(params *Params, pkR crypto.PublicKey, random io.Reader, psk, pskI
 	if err != nil {
 		return
 	}
-	return setupPSK(params, pkR, psk, pskID, shared, enc, info)
+	key, nonce, err = setupPSK(params, pkR, psk, pskID, shared, enc, info)
+	return
 }
 
 // setupPskR is the setup for the Receiver in the psk mode
@@ -258,7 +265,9 @@ func setupAuthI(params *Params, pkR crypto.PublicKey, skI crypto.PrivateKey, ran
 	if err != nil {
 		return
 	}
-	return setupAuth(params, pkR, params.curve.PublicKey(skI), shared, enc, info)
+	key, nonce, err = setupAuth(params, pkR, params.curve.PublicKey(skI), shared, enc, info)
+	return
+
 }
 
 // setupAuthR is the setup for the Receiver in the auth mode
@@ -284,7 +293,8 @@ func kdf(params *Params, hash hash.Hash, shared, salt []byte) []byte {
 
 // return the appropriate aead ciphersuite based on params
 func getAead(params *Params, key []byte) (cphr cipher.AEAD, err error) {
-	if params.cipher == aes_gcm {
+	switch params.ciphersuite {
+	case 1, 3, 5:
 		block, err := aes.NewCipher(key)
 		if err != nil {
 			return nil, err
@@ -293,30 +303,58 @@ func getAead(params *Params, key []byte) (cphr cipher.AEAD, err error) {
 		if err != nil {
 			return nil, err
 		}
-	} else if params.cipher == chacha_poly {
+	case 2, 4, 6:
 		cphr, err = chacha20poly1305.New(key)
 		if err != nil {
-			return nil, err
+			return
 		}
-	} else {
-		return nil, errors.New("unknown cipher choice")
+	default:
+		err = errors.New("unknown cipher choice")
+		return
 	}
 	return
 }
 
-func encryptSymmetric(rand io.Reader, cphr cipher.AEAD, pt, aad []byte) (ct []byte, err error) {
-	nonce := make([]byte, cphr.NonceSize())
-	_, err = io.ReadFull(rand, nonce)
-	if err != nil {
+// If x and y are non-negative integers, we define Z = toByte(x, y) to
+// be the y-byte string containing the binary representation of x in
+// big-endian byte order.
+func bigEndian(x, len int) (z []byte) {
+	z = make([]byte, len)
+	ux := uint64(x)
+	var xByte byte
+	for i := len - 1; i >= 0; i-- {
+		xByte = byte(ux)
+		z[i] = xByte & 0xff
+		ux = ux >> 8
+	}
+	return
+}
+
+func xorNonce(nonce []byte, seq, nonceSize int) []byte {
+	encSeq := bigEndian(seq, nonceSize)
+	for i := 0; i < nonceSize; i++ {
+		nonce[i] ^= encSeq[i]
+	}
+	return nonce
+}
+
+func encryptSymmetric(rand io.Reader, cphr cipher.AEAD, pt, aad, nonce []byte, seq int) (ct []byte, err error) {
+	if nonce == nil || len(nonce) != cphr.NonceSize() {
+		err = errors.New("nonce is incorrect")
 		return
 	}
+	nonce = xorNonce(nonce, seq, cphr.NonceSize())
 	ct = cphr.Seal(nil, nonce, pt, aad)
 	ct = append(nonce, ct...)
 	return
 }
 
-func decryptSymmetric(cphr cipher.AEAD, ct, aad []byte) (pt []byte, err error) {
-	nonce := ct[:cphr.NonceSize()]
+func decryptSymmetric(cphr cipher.AEAD, ct, aad, nonce []byte, seq int) (pt []byte, err error) {
+	if nonce == nil || len(nonce) != cphr.NonceSize() {
+		err = errors.New("nonce is incorrect")
+		return
+	}
+	nonce = xorNonce(nonce, seq, cphr.NonceSize())
 	pt, err = cphr.Open(nil, nonce, ct[cphr.NonceSize():], aad)
 	return
 }
@@ -324,33 +362,23 @@ func decryptSymmetric(cphr cipher.AEAD, ct, aad []byte) (pt []byte, err error) {
 // Encrypt is a function for encryption
 // Optional arguments:
 //    `random` is optional. If `nil` crypto/rand.Reader is used
-//    `aad` and `salt` are optional.
-func Encrypt(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad, salt []byte) (ct []byte, pkE crypto.PublicKey, err error) {
+//    `aad` and `info` are optional.
+func Encrypt(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad, info []byte) (ct, enc []byte, err error) {
 	if random == nil {
 		random = rand.Reader
 	}
 
-	skE, pkE, err := params.curve.GenerateKey(random)
+	key, nonce, enc, err := setupBaseI(params, pkR, random, info)
 	if err != nil {
 		return
 	}
 
-	hashFunc := params.hashFn()
-	keySize := hashFunc.Size() / 2
-	if 2*keySize > (params.curve.Params().BitSize+7)>>3 {
-		err = errors.New("shared key length is too long")
-		return
-	}
-
-	shared := params.curve.ComputeSecret(skE, pkR)
-	fmt.Println("shared len: ", len(shared))
-	K := kdf(params, hashFunc, shared, salt)
-
-	cphr, err := getAead(params, K)
+	cphr, err := getAead(params, key)
 	if err != nil {
 		return
 	}
-	ct, err = encryptSymmetric(random, cphr, pt, aad)
+
+	ct, err = encryptSymmetric(random, cphr, pt, aad, nonce, 0)
 	if err != nil {
 		return
 	}
@@ -358,27 +386,15 @@ func Encrypt(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad, sa
 }
 
 // Decrypt is a function for decryption
-func Decrypt(params *Params, skR crypto.PrivateKey, pkE crypto.PublicKey, ct, aad, salt []byte) (pt []byte, err error) {
-	hashFunc := params.hashFn()
-	keySize := hashFunc.Size() / 2
-	if 2*keySize > (params.curve.Params().BitSize+7)>>3 {
-		err = errors.New("shared key length is too long")
-		return
-	}
+func Decrypt(params *Params, skR crypto.PrivateKey, enc, ct, aad, info []byte) (pt []byte, err error) {
+	key, nonce, err := setupBaseR(params, skR, enc, info)
 
-	err = params.curve.Check(pkE)
+	cphr, err := getAead(params, key)
 	if err != nil {
 		return
 	}
 
-	shared := params.curve.ComputeSecret(skR, pkE)
-	K := kdf(params, hashFunc, shared, salt)
-
-	cphr, err := getAead(params, K)
-	if err != nil {
-		return
-	}
-	pt, err = decryptSymmetric(cphr, ct, aad)
+	pt, err = decryptSymmetric(cphr, ct, aad, nonce, 0)
 	if err != nil {
 		return
 	}

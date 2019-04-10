@@ -14,16 +14,10 @@ type Params struct {
 	curve ecdh.KeyExchange
 	//bitSize int
 	hashFn      func() hash.Hash
-	cipher      uint8
 	nk          uint8
 	nh          uint8
 	ciphersuite uint8
 }
-
-const (
-	aes_gcm uint8 = iota + 1
-	chacha_poly
-)
 
 const (
 	mode_base byte = iota
@@ -38,7 +32,6 @@ var (
 		curve: ecdh.X25519(),
 		// bitSize: 256,
 		hashFn:      sha256.New,
-		cipher:      aes_gcm,
 		nk:          16,
 		nh:          32,
 		ciphersuite: 3,
@@ -47,7 +40,6 @@ var (
 		curve: ecdh.X25519(),
 		// bitSize: 256,
 		hashFn:      sha256.New,
-		cipher:      chacha_poly,
 		nk:          32,
 		nh:          32,
 		ciphersuite: 4,
@@ -56,7 +48,6 @@ var (
 		curve: ecdh.Generic(elliptic.P256()),
 		// bitSize: 256,
 		hashFn:      sha256.New,
-		cipher:      aes_gcm,
 		nk:          16,
 		nh:          32,
 		ciphersuite: 1,
@@ -65,7 +56,6 @@ var (
 		curve: ecdh.Generic(elliptic.P256()),
 		// bitSize: 256,
 		hashFn:      sha256.New,
-		cipher:      chacha_poly,
 		nk:          32,
 		nh:          32,
 		ciphersuite: 2,
@@ -74,7 +64,6 @@ var (
 		curve: ecdh.Generic(elliptic.P521()),
 		// bitSize: 512,
 		hashFn:      sha512.New,
-		cipher:      aes_gcm,
 		nk:          32,
 		nh:          64,
 		ciphersuite: 5,
@@ -83,7 +72,6 @@ var (
 		curve: ecdh.Generic(elliptic.P521()),
 		// bitSize: 512,
 		hashFn:      sha512.New,
-		cipher:      chacha_poly,
 		nk:          32,
 		nh:          64,
 		ciphersuite: 6,
