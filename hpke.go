@@ -6,7 +6,6 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"errors"
-	"hash"
 	"io"
 	"math/big"
 
@@ -279,17 +278,6 @@ func setupAuthR(params *Params, skR crypto.PrivateKey, pkI crypto.PublicKey, enc
 	return setupAuth(params, params.curve.PublicKey(skR), pkI, shared, enc, info)
 }
 
-// Key-Derivation Function
-func kdf(params *Params, hash hash.Hash, shared, salt []byte) []byte {
-	hash.Write(shared)
-	if salt != nil {
-		hash.Write(salt)
-	}
-	key := hash.Sum(nil)
-	hash.Reset()
-	return key[:params.nk]
-}
-
 // return the appropriate aead ciphersuite based on params
 func getAead(params *Params, key []byte) (cphr cipher.AEAD, err error) {
 	switch params.ciphersuite {
@@ -314,25 +302,16 @@ func getAead(params *Params, key []byte) (cphr cipher.AEAD, err error) {
 	return
 }
 
-// If x and y are non-negative integers, we define Z = toByte(x, y) to
-// be the y-byte string containing the binary representation of x in
-// big-endian byte order.
-func bigEndian(x, len int) (z []byte) {
-	z = make([]byte, len)
-	ux := uint64(x)
-	var xByte byte
-	for i := len - 1; i >= 0; i-- {
-		xByte = byte(ux)
-		z[i] = xByte & 0xff
-		ux = ux >> 8
-	}
-	return
-}
-
+// xorNonce XORs the derived nonce with y-byte string containing the binary representation
+// of state counter seq in big-endian byte order.
+// this function is optimized so that the xor is performed simultaneously with the big endian encoding
 func xorNonce(nonce []byte, seq, nonceSize int) []byte {
-	encSeq := bigEndian(seq, nonceSize)
-	for i := 0; i < nonceSize; i++ {
-		nonce[i] ^= encSeq[i]
+	useq := uint64(seq)
+	var xByte byte
+	for i := nonceSize - 1; i >= 0; i-- {
+		xByte = byte(useq)
+		nonce[i] ^= (xByte & 0xff)
+		useq = useq >> 8
 	}
 	return nonce
 }
