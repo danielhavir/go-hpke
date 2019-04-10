@@ -64,11 +64,10 @@ func Marshall(key interface{}) (keyBytes []byte, err error) {
 func marshallGeneric(key ecdh.Point) (pubBytes []byte) {
 	xBytes := uint8(len(key.X.Bytes()))
 	yBytes := uint8(len(key.Y.Bytes()))
-	pubBytes = make([]byte, 2+xBytes+yBytes)
+	pubBytes = make([]byte, 1+xBytes+yBytes)
 	pubBytes[0] = xBytes
-	pubBytes[1] = yBytes
-	copy(pubBytes[2:xBytes+2], key.X.Bytes())
-	copy(pubBytes[xBytes+2:], key.Y.Bytes())
+	copy(pubBytes[1:xBytes+1], key.X.Bytes())
+	copy(pubBytes[xBytes+1:], key.Y.Bytes())
 	return
 }
 
@@ -93,8 +92,8 @@ func Unmarshall(params *Params, keyBytes []byte) (pub crypto.PublicKey, err erro
 // helper function for unmarshalling a point on an elliptic curve to a byte array
 func unmarshallGeneric(pubBytes []byte) (key ecdh.Point) {
 	xBytes := uint8(pubBytes[0])
-	x := new(big.Int).SetBytes(pubBytes[2 : xBytes+2])
-	y := new(big.Int).SetBytes(pubBytes[xBytes+2:])
+	x := new(big.Int).SetBytes(pubBytes[1 : xBytes+1])
+	y := new(big.Int).SetBytes(pubBytes[xBytes+1:])
 	return ecdh.Point{X: x, Y: y}
 }
 

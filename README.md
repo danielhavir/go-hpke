@@ -1,7 +1,7 @@
 ![stability-wip](https://img.shields.io/badge/stability-work_in_progress-lightgrey.svg) ![tests-passing](https://danielhavir.github.io/badges/7b10a2ec99832a186dac8cc279a45d3e/tests_passing.svg)
 
 # HPKE: Hybrid Public Key Encryption
-This project implements the [CFRG](https://irtf.org/cfrg)'s [draft-barnes-cfrg-hpke-00](https://datatracker.ietf.org/doc/draft-barnes-cfrg-hpke/), Hybrid Public Key Encryption (HPKE).
+This project implements the [CFRG](https://irtf.org/cfrg)'s [draft-barnes-cfrg-hpke-01](https://datatracker.ietf.org/doc/draft-barnes-cfrg-hpke/), Hybrid Public Key Encryption (HPKE).
 
 ## Ciphersuite configuration
 
@@ -14,7 +14,7 @@ This project implements the [CFRG](https://irtf.org/cfrg)'s [draft-barnes-cfrg-h
 | P521_SHA512_AES_GCM_256          | P-521         | HKDF-SHA512   | AES-GCM-256       |
 | P521_SHA512_ChaCha20Poly1305     | P-521         | HKDF-SHA512   | ChaCha20Poly1305  |
 
-See [section 6](https://tools.ietf.org/html/draft-barnes-cfrg-hpke-00#section-6) for reference.
+See [section 6](https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6) for reference.
 
 ### Install
 * Run `go get -u https://github.com/danielhavir/go-hpke`
