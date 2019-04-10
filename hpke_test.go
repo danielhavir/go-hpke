@@ -8,7 +8,7 @@ import (
 
 func testHPKE(t *testing.T, params *Params) {
 	random := rand.Reader
-	prv, pub, err := GenerateKeypair(params, random)
+	prv, pub, err := GenerateKeyPair(params, random)
 	if err != nil {
 		t.Error(err)
 	}
