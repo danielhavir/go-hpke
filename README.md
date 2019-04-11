@@ -1,20 +1,30 @@
 ![stability-wip](https://img.shields.io/badge/stability-work_in_progress-lightgrey.svg) ![tests-passing](https://danielhavir.github.io/badges/7b10a2ec99832a186dac8cc279a45d3e/tests_passing.svg)
 
 # HPKE: Hybrid Public Key Encryption
-This project implements the [CFRG](https://irtf.org/cfrg)'s [draft-barnes-cfrg-hpke-00](https://datatracker.ietf.org/doc/draft-barnes-cfrg-hpke/), Hybrid Public Key Encryption (HPKE).
+This project implements the [CFRG](https://irtf.org/cfrg)'s [draft-barnes-cfrg-hpke-01](https://datatracker.ietf.org/doc/draft-barnes-cfrg-hpke/), Hybrid Public Key Encryption (HPKE).
+
+## Authentication modes
+
+Referenced from [section 6](https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6):
+
+* `BASE` Encryption to a Public Key: the most basic function of an HPKE scheme is to enable encryption for the holder of a given KEM private key.
+* `PSK` Authentication using a Pre-Shared Key: This variant extends the base mechansism by allowing the recipient to authenticate that the sender possessed a given pre-shared key (PSK). We assume that both parties have been provisioned with both the PSK value "psk" and another octet string "pskID" that is used to identify which PSK should be used.
+* `AUTH` Authentication using an Asymmetric Key: This variant extends the base mechansism by allowing the recipient to authenticate that the sender possessed a given KEM private key. In other words, only two people could have produced this secret, so if the recipient is one, then the sender must be the other.
 
 ## Ciphersuite configuration
 
-| Configuration Name               | DH Group      | KDF           | AEAD              |
-|----------------------------------|---------------|---------------|-------------------|
-| X25519_SHA256_AES_GCM_128        | Curve25519    | HKDF-SHA256   | AES-GCM-128       |
-| X25519_SHA256_ChaCha20Poly1305   | Curve25519    | HKDF-SHA256   | ChaCha20Poly1305  |
-| P256_SHA256_AES_GCM_128          | P-256         | HKDF-SHA256   | AES-GCM-128       |
-| P256_SHA256_ChaCha20Poly1305     | P-256         | HKDF-SHA256   | ChaCha20Poly1305  |
-| P521_SHA512_AES_GCM_256          | P-521         | HKDF-SHA512   | AES-GCM-256       |
-| P521_SHA512_ChaCha20Poly1305     | P-521         | HKDF-SHA512   | ChaCha20Poly1305  |
+| Configuration Name                        | DH Group      | KDF           | AEAD              |
+|-------------------------------------------|---------------|---------------|-------------------|
+| \<mode\>_X25519_SHA256_AES_GCM_128        | Curve25519    | HKDF-SHA256   | AES-GCM-128       |
+| \<mode\>_X25519_SHA256_ChaCha20Poly1305   | Curve25519    | HKDF-SHA256   | ChaCha20Poly1305  |
+| \<mode\>_P256_SHA256_AES_GCM_128          | P-256         | HKDF-SHA256   | AES-GCM-128       |
+| \<mode\>_P256_SHA256_ChaCha20Poly1305     | P-256         | HKDF-SHA256   | ChaCha20Poly1305  |
+| \<mode\>_P521_SHA512_AES_GCM_256          | P-521         | HKDF-SHA512   | AES-GCM-256       |
+| \<mode\>_P521_SHA512_ChaCha20Poly1305     | P-521         | HKDF-SHA512   | ChaCha20Poly1305  |
 
-See [section 6](https://tools.ietf.org/html/draft-barnes-cfrg-hpke-00#section-6) for reference.
+See [section 6](https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6) for reference.
+
+Examples: BASE_X25519_SHA256_AES_GCM_128, PSK_P256_SHA256_ChaCha20Poly1305, AUTH_P521_SHA512_ChaCha20Poly1305
 
 ### Install
 * Run `go get -u https://github.com/danielhavir/go-hpke`
@@ -31,7 +41,7 @@ import (
 )
 
 func main() {
-    params := hpke.X25519_SHA256_ChaCha20Poly1305
+    params := hpke.GetParams(hpke.BASE_X25519_SHA256_ChaCha20Poly1305)
     
     random := rand.Reader
     prv, pub, err := hpke.GenerateKeypair(params, random)
@@ -39,17 +49,22 @@ func main() {
         panic(fmt.Sprintf("failed to generate key pair: %s\n", err))
     }
 
+    // IMPORTANT: the value of counter must be increased after each encryption / decryption
+    counter := 0
+
     msg := ...
 
-    ciphertext, ephemeral, err := hpke.Encrypt(params, random, pub, msg, nil, nil)
+    ciphertext, ephemeral, err := hpke.EncryptBase(params, random, pub, msg, nil, nil)
     if err != nil {
         panic(fmt.Sprintf("failed to encrypt message: %s\n", err))
     }
 
-    plaintext, err := hpke.Decrypt(params, prv, ephemeral, ciphertext, nil, nil)
+    plaintext, err := hpke.DecryptBase(params, prv, ephemeral, ciphertext, nil, nil)
     if err != nil {
         panic(fmt.Sprintf("failed to decrypt ciphertext: %s\n", err))
     }
+
+    counter++
 
     if !bytes.Equal(msg, plaintext) {
         panic("authentication failed")

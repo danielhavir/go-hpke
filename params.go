@@ -4,6 +4,7 @@ import (
 	"crypto/elliptic"
 	"crypto/sha256"
 	"crypto/sha512"
+	"errors"
 	"hash"
 
 	"github.com/aead/ecdh"
@@ -13,59 +14,225 @@ import (
 type Params struct {
 	curve ecdh.KeyExchange
 	//bitSize int
-	hashFn func() hash.Hash
-	cipher uint8
-	nk     uint8
+	hashFn      func() hash.Hash
+	nk          uint8
+	nh          uint8
+	ciphersuite uint8
+	mode        uint8
 }
 
 const (
-	aes_gcm uint8 = iota + 1
-	chacha_poly
+	mode_base uint8 = iota
+	mode_psk
+	mode_auth
+)
+
+const (
+	BASE_P256_SHA256_AES_GCM_128 byte = iota
+	BASE_P256_SHA256_ChaCha20Poly1305
+	PSK_P256_SHA256_AES_GCM_128
+	PSK_P256_SHA256_ChaCha20Poly1305
+	AUTH_P256_SHA256_AES_GCM_128
+	AUTH_P256_SHA256_ChaCha20Poly1305
+	BASE_X25519_SHA256_AES_GCM_128
+	BASE_X25519_SHA256_ChaCha20Poly1305
+	PSK_X25519_SHA256_AES_GCM_128
+	PSK_X25519_SHA256_ChaCha20Poly1305
+	AUTH_X25519_SHA256_AES_GCM_128
+	AUTH_X25519_SHA256_ChaCha20Poly1305
+	BASE_P521_SHA512_AES_GCM_256
+	BASE_P521_SHA512_ChaCha20Poly1305
+	PSK_P521_SHA512_AES_GCM_256
+	PSK_P521_SHA512_ChaCha20Poly1305
+	AUTH_P521_SHA512_AES_GCM_256
+	AUTH_P521_SHA512_ChaCha20Poly1305
 )
 
 const nn = uint8(12)
 
-var (
-	X25519_SHA256_AES_GCM_128 = &Params{
-		curve: ecdh.X25519(),
-		// bitSize: 256,
-		hashFn: sha256.New,
-		cipher: aes_gcm,
-		nk:     16,
+func GetParams(mode byte) (*Params, error) {
+	switch mode {
+	case BASE_P256_SHA256_AES_GCM_128:
+		return &Params{
+			curve: ecdh.Generic(elliptic.P256()),
+			// bitSize: 256,
+			hashFn:      sha256.New,
+			nk:          16,
+			nh:          32,
+			ciphersuite: 1,
+			mode:        mode_base,
+		}, nil
+	case BASE_P256_SHA256_ChaCha20Poly1305:
+		return &Params{
+			curve: ecdh.Generic(elliptic.P256()),
+			// bitSize: 256,
+			hashFn:      sha256.New,
+			nk:          32,
+			nh:          32,
+			ciphersuite: 2,
+			mode:        mode_base,
+		}, nil
+	case PSK_P256_SHA256_AES_GCM_128:
+		return &Params{
+			curve: ecdh.Generic(elliptic.P256()),
+			// bitSize: 256,
+			hashFn:      sha256.New,
+			nk:          16,
+			nh:          32,
+			ciphersuite: 1,
+			mode:        mode_psk,
+		}, nil
+	case PSK_P256_SHA256_ChaCha20Poly1305:
+		return &Params{
+			curve: ecdh.Generic(elliptic.P256()),
+			// bitSize: 256,
+			hashFn:      sha256.New,
+			nk:          32,
+			nh:          32,
+			ciphersuite: 2,
+			mode:        mode_psk,
+		}, nil
+	case AUTH_P256_SHA256_AES_GCM_128:
+		return &Params{
+			curve: ecdh.Generic(elliptic.P256()),
+			// bitSize: 256,
+			hashFn:      sha256.New,
+			nk:          16,
+			nh:          32,
+			ciphersuite: 1,
+			mode:        mode_auth,
+		}, nil
+	case AUTH_P256_SHA256_ChaCha20Poly1305:
+		return &Params{
+			curve: ecdh.Generic(elliptic.P256()),
+			// bitSize: 256,
+			hashFn:      sha256.New,
+			nk:          32,
+			nh:          32,
+			ciphersuite: 2,
+			mode:        mode_auth,
+		}, nil
+	case BASE_X25519_SHA256_AES_GCM_128:
+		return &Params{
+			curve: ecdh.X25519(),
+			// bitSize: 256,
+			hashFn:      sha256.New,
+			nk:          16,
+			nh:          32,
+			ciphersuite: 3,
+			mode:        mode_base,
+		}, nil
+	case BASE_X25519_SHA256_ChaCha20Poly1305:
+		return &Params{
+			curve: ecdh.X25519(),
+			// bitSize: 256,
+			hashFn:      sha256.New,
+			nk:          32,
+			nh:          32,
+			ciphersuite: 4,
+			mode:        mode_base,
+		}, nil
+	case PSK_X25519_SHA256_AES_GCM_128:
+		return &Params{
+			curve: ecdh.X25519(),
+			// bitSize: 256,
+			hashFn:      sha256.New,
+			nk:          16,
+			nh:          32,
+			ciphersuite: 3,
+			mode:        mode_psk,
+		}, nil
+	case PSK_X25519_SHA256_ChaCha20Poly1305:
+		return &Params{
+			curve: ecdh.X25519(),
+			// bitSize: 256,
+			hashFn:      sha256.New,
+			nk:          32,
+			nh:          32,
+			ciphersuite: 4,
+			mode:        mode_psk,
+		}, nil
+	case AUTH_X25519_SHA256_AES_GCM_128:
+		return &Params{
+			curve: ecdh.X25519(),
+			// bitSize: 256,
+			hashFn:      sha256.New,
+			nk:          16,
+			nh:          32,
+			ciphersuite: 3,
+			mode:        mode_auth,
+		}, nil
+	case AUTH_X25519_SHA256_ChaCha20Poly1305:
+		return &Params{
+			curve: ecdh.X25519(),
+			// bitSize: 256,
+			hashFn:      sha256.New,
+			nk:          32,
+			nh:          32,
+			ciphersuite: 4,
+			mode:        mode_auth,
+		}, nil
+	case BASE_P521_SHA512_AES_GCM_256:
+		return &Params{
+			curve: ecdh.Generic(elliptic.P521()),
+			// bitSize: 512,
+			hashFn:      sha512.New,
+			nk:          32,
+			nh:          64,
+			ciphersuite: 5,
+			mode:        mode_base,
+		}, nil
+	case BASE_P521_SHA512_ChaCha20Poly1305:
+		return &Params{
+			curve: ecdh.Generic(elliptic.P521()),
+			// bitSize: 512,
+			hashFn:      sha512.New,
+			nk:          32,
+			nh:          64,
+			ciphersuite: 6,
+			mode:        mode_base,
+		}, nil
+	case PSK_P521_SHA512_AES_GCM_256:
+		return &Params{
+			curve: ecdh.Generic(elliptic.P521()),
+			// bitSize: 512,
+			hashFn:      sha512.New,
+			nk:          32,
+			nh:          64,
+			ciphersuite: 5,
+			mode:        mode_psk,
+		}, nil
+	case PSK_P521_SHA512_ChaCha20Poly1305:
+		return &Params{
+			curve: ecdh.Generic(elliptic.P521()),
+			// bitSize: 512,
+			hashFn:      sha512.New,
+			nk:          32,
+			nh:          64,
+			ciphersuite: 6,
+			mode:        mode_psk,
+		}, nil
+	case AUTH_P521_SHA512_AES_GCM_256:
+		return &Params{
+			curve: ecdh.Generic(elliptic.P521()),
+			// bitSize: 512,
+			hashFn:      sha512.New,
+			nk:          32,
+			nh:          64,
+			ciphersuite: 5,
+			mode:        mode_auth,
+		}, nil
+	case AUTH_P521_SHA512_ChaCha20Poly1305:
+		return &Params{
+			curve: ecdh.Generic(elliptic.P521()),
+			// bitSize: 512,
+			hashFn:      sha512.New,
+			nk:          32,
+			nh:          64,
+			ciphersuite: 6,
+			mode:        mode_auth,
+		}, nil
+	default:
+		return nil, errors.New("unknown mode")
 	}
-	X25519_SHA256_ChaCha20Poly1305 = &Params{
-		curve: ecdh.X25519(),
-		// bitSize: 256,
-		hashFn: sha256.New,
-		cipher: chacha_poly,
-		nk:     32,
-	}
-	P256_SHA256_AES_GCM_128 = &Params{
-		curve: ecdh.Generic(elliptic.P256()),
-		// bitSize: 256,
-		hashFn: sha256.New,
-		cipher: aes_gcm,
-		nk:     16,
-	}
-	P256_SHA256_ChaCha20Poly1305 = &Params{
-		curve: ecdh.Generic(elliptic.P256()),
-		// bitSize: 256,
-		hashFn: sha256.New,
-		cipher: chacha_poly,
-		nk:     32,
-	}
-	P521_SHA512_AES_GCM_256 = &Params{
-		curve: ecdh.Generic(elliptic.P521()),
-		// bitSize: 512,
-		hashFn: sha512.New,
-		cipher: aes_gcm,
-		nk:     32,
-	}
-	P521_SHA512_ChaCha20Poly1305 = &Params{
-		curve: ecdh.Generic(elliptic.P521()),
-		// bitSize: 512,
-		hashFn: sha512.New,
-		cipher: chacha_poly,
-		nk:     32,
-	}
-)
+}
