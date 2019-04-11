@@ -182,7 +182,7 @@ func setupBase(params *Params, pkR crypto.PublicKey, shared, enc, info []byte) (
 
 // setupPSK is the common setup in the psk mode for the Initiator and the Receiver
 // Section 6.2. https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6.2
-func setupPSK(params *Params, pkR crypto.PublicKey, psk, pskID, shared, enc, info []byte) (key, nonce []byte, err error) {
+func setupPsk(params *Params, pkR crypto.PublicKey, psk, pskID, shared, enc, info []byte) (key, nonce []byte, err error) {
 	pkRBytes, err := Marshall(pkR)
 	if err != nil {
 		err = errors.New("incorrect receiver's public key")
@@ -237,12 +237,12 @@ func setupBaseR(params *Params, skR crypto.PrivateKey, enc, info []byte) (key, n
 
 // setupPSKI is the setup for the Initiator in the psk mode
 // Section 6.2. https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6.2
-func setupPSKI(params *Params, pkR crypto.PublicKey, random io.Reader, psk, pskID, info []byte) (key, nonce []byte, err error) {
+func setupPskI(params *Params, pkR crypto.PublicKey, random io.Reader, psk, pskID, info []byte) (key, nonce, enc []byte, err error) {
 	shared, enc, err := encap(params, pkR, random)
 	if err != nil {
 		return
 	}
-	key, nonce, err = setupPSK(params, pkR, psk, pskID, shared, enc, info)
+	key, nonce, err = setupPsk(params, pkR, psk, pskID, shared, enc, info)
 	return
 }
 
@@ -253,12 +253,12 @@ func setupPskR(params *Params, skR crypto.PrivateKey, enc, psk, pskID, info []by
 	if err != nil {
 		return
 	}
-	return setupPSK(params, params.curve.PublicKey(skR), psk, pskID, shared, enc, info)
+	return setupPsk(params, params.curve.PublicKey(skR), psk, pskID, shared, enc, info)
 }
 
 // setupAuthI is the setup for the Initiator in the auth mode
 // Section 6.3. https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6.3
-func setupAuthI(params *Params, pkR crypto.PublicKey, skI crypto.PrivateKey, random io.Reader, info []byte) (key, nonce []byte, err error) {
+func setupAuthI(params *Params, pkR crypto.PublicKey, skI crypto.PrivateKey, random io.Reader, info []byte) (key, nonce, enc []byte, err error) {
 	shared, enc, err := authEncap(params, pkR, skI, random)
 	if err != nil {
 		return
@@ -337,11 +337,16 @@ func decryptSymmetric(cphr cipher.AEAD, ct, aad, nonce []byte, seq int) (pt []by
 	return
 }
 
-// Encrypt is a function for encryption
+// EncryptBase is a function for encryption in the base mode
 // Optional arguments:
 //    `random` is optional. If `nil` crypto/rand.Reader is used
 //    `aad` and `info` are optional.
-func Encrypt(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad, info []byte) (ct, enc []byte, err error) {
+func EncryptBase(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad, info []byte, counter int) (ct, enc []byte, err error) {
+	if params.mode != mode_base {
+		err = errors.New("params specify different mode")
+		return
+	}
+
 	if random == nil {
 		random = rand.Reader
 	}
@@ -356,15 +361,20 @@ func Encrypt(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad, in
 		return
 	}
 
-	ct, err = encryptSymmetric(random, cphr, pt, aad, nonce, 0)
+	ct, err = encryptSymmetric(random, cphr, pt, aad, nonce, counter)
 	if err != nil {
 		return
 	}
 	return
 }
 
-// Decrypt is a function for decryption
-func Decrypt(params *Params, skR crypto.PrivateKey, enc, ct, aad, info []byte) (pt []byte, err error) {
+// DecryptBase is a function for decryption in the base mode
+func DecryptBase(params *Params, skR crypto.PrivateKey, enc, ct, aad, info []byte, counter int) (pt []byte, err error) {
+	if params.mode != mode_base {
+		err = errors.New("params specify different mode")
+		return
+	}
+
 	key, nonce, err := setupBaseR(params, skR, enc, info)
 
 	cphr, err := getAead(params, key)
@@ -372,7 +382,111 @@ func Decrypt(params *Params, skR crypto.PrivateKey, enc, ct, aad, info []byte) (
 		return
 	}
 
-	pt, err = decryptSymmetric(cphr, ct, aad, nonce, 0)
+	pt, err = decryptSymmetric(cphr, ct, aad, nonce, counter)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// EncryptPSK is a function for encryption in the pre-shared key mode
+// Optional arguments:
+//    `random` is optional. If `nil` crypto/rand.Reader is used
+//    `aad` and `info` are optional.
+func EncryptPSK(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad, psk, pskID, info []byte, counter int) (ct, enc []byte, err error) {
+	if params.mode != mode_psk {
+		err = errors.New("params specify different mode")
+		return
+	}
+
+	if random == nil {
+		random = rand.Reader
+	}
+
+	key, nonce, enc, err := setupPskI(params, pkR, random, psk, pskID, info)
+	if err != nil {
+		return
+	}
+
+	cphr, err := getAead(params, key)
+	if err != nil {
+		return
+	}
+
+	ct, err = encryptSymmetric(random, cphr, pt, aad, nonce, counter)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// DecryptPSK is a function for decryption in the pre-shared key mode
+func DecryptPSK(params *Params, skR crypto.PrivateKey, enc, ct, aad, psk, pskID, info []byte, counter int) (pt []byte, err error) {
+	if params.mode != mode_psk {
+		err = errors.New("params specify different mode")
+		return
+	}
+
+	key, nonce, err := setupPskR(params, skR, enc, psk, pskID, info)
+
+	cphr, err := getAead(params, key)
+	if err != nil {
+		return
+	}
+
+	pt, err = decryptSymmetric(cphr, ct, aad, nonce, counter)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// EncryptAuth is a function for encryption in the asymmetric key mode
+// Optional arguments:
+//    `random` is optional. If `nil` crypto/rand.Reader is used
+//    `aad` and `info` are optional.
+func EncryptAuth(params *Params, random io.Reader, pkR crypto.PublicKey, skI crypto.PrivateKey, pt, aad, info []byte, counter int) (ct, enc []byte, err error) {
+	if params.mode != mode_auth {
+		err = errors.New("params specify different mode")
+		return
+	}
+
+	if random == nil {
+		random = rand.Reader
+	}
+
+	key, nonce, enc, err := setupAuthI(params, pkR, skI, random, info)
+	if err != nil {
+		return
+	}
+
+	cphr, err := getAead(params, key)
+	if err != nil {
+		return
+	}
+
+	ct, err = encryptSymmetric(random, cphr, pt, aad, nonce, counter)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// DecryptAuth is a function for decryption in the asymmetric key mode
+func DecryptAuth(params *Params, skR crypto.PrivateKey, pkI crypto.PublicKey, enc, ct, aad, info []byte, counter int) (pt []byte, err error) {
+	if params.mode != mode_auth {
+		err = errors.New("params specify different mode")
+		return
+	}
+
+	key, nonce, err := setupAuthR(params, skR, pkI, enc, info)
+
+	cphr, err := getAead(params, key)
+	if err != nil {
+		return
+	}
+
+	pt, err = decryptSymmetric(cphr, ct, aad, nonce, counter)
 	if err != nil {
 		return
 	}
