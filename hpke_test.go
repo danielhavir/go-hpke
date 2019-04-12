@@ -269,12 +269,12 @@ func testAuthHPKE(t *testing.T, params *Params) {
 	info := make([]byte, 32)
 	rand.Read(info)
 
-	ct, ephemeral, err = EncryptAuth(params, random, pkR, skI, msg, aad, nil, counter)
+	ct, ephemeral, err = EncryptAuth(params, random, pkR, skI, msg, aad, info, counter)
 	if err != nil {
 		t.Error(err)
 	}
 
-	pt, err = DecryptAuth(params, skR, pkI, ephemeral, ct, aad, nil, counter)
+	pt, err = DecryptAuth(params, skR, pkI, ephemeral, ct, aad, info, counter)
 	if err != nil {
 		t.Error(err)
 	}

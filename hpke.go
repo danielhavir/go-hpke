@@ -321,7 +321,6 @@ func encryptSymmetric(rand io.Reader, cphr cipher.AEAD, pt, aad, nonce []byte, s
 	}
 	nonce = xorNonce(nonce, seq, cphr.NonceSize())
 	ct = cphr.Seal(nil, nonce, pt, aad)
-	ct = append(nonce, ct...)
 	return
 }
 
@@ -331,7 +330,7 @@ func decryptSymmetric(cphr cipher.AEAD, ct, aad, nonce []byte, seq int) (pt []by
 		return
 	}
 	nonce = xorNonce(nonce, seq, cphr.NonceSize())
-	pt, err = cphr.Open(nil, nonce, ct[cphr.NonceSize():], aad)
+	pt, err = cphr.Open(nil, nonce, ct, aad)
 	return
 }
 
