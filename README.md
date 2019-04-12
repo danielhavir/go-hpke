@@ -1,7 +1,7 @@
 ![stability-wip](https://img.shields.io/badge/stability-work_in_progress-lightgrey.svg) ![tests-passing](https://danielhavir.github.io/badges/7b10a2ec99832a186dac8cc279a45d3e/tests_passing.svg)
 
 # HPKE: Hybrid Public Key Encryption
-This project implements the [CFRG](https://irtf.org/cfrg)'s [draft-barnes-cfrg-hpke-01](https://datatracker.ietf.org/doc/draft-barnes-cfrg-hpke/), Hybrid Public Key Encryption (HPKE).
+This project implements the [CFRG](https://irtf.org/cfrg)'s [draft-barnes-cfrg-hpke-01](https://datatracker.ietf.org/doc/draft-barnes-cfrg-hpke/), Hybrid Public Key Encryption (HPKE). This branch differs from the original draft in the nonce generation for AEAD. Rather than stateful deriving of the nonce, this branch randomly generates the nonce and appends in the beggining of the ciphertext 
 
 ## Authentication modes
 
@@ -49,22 +49,17 @@ func main() {
         panic(fmt.Sprintf("failed to generate key pair: %s\n", err))
     }
 
-    // IMPORTANT: the value of counter must be increased after each encryption / decryption
-    counter := 0
-
     msg := ...
 
-    ciphertext, ephemeral, err := hpke.EncryptBase(params, random, pub, msg, nil, nil)
+    ciphertext, ephemeral, err := hpke.EncryptBase(params, random, pub, msg, nil)
     if err != nil {
         panic(fmt.Sprintf("failed to encrypt message: %s\n", err))
     }
 
-    plaintext, err := hpke.DecryptBase(params, prv, ephemeral, ciphertext, nil, nil)
+    plaintext, err := hpke.DecryptBase(params, prv, ephemeral, ciphertext, nil)
     if err != nil {
         panic(fmt.Sprintf("failed to decrypt ciphertext: %s\n", err))
     }
-
-    counter++
 
     if !bytes.Equal(msg, plaintext) {
         panic("authentication failed")
