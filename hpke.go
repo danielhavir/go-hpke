@@ -147,27 +147,21 @@ func authDecap(params *Params, skR crypto.PrivateKey, pkI crypto.PublicKey, enc 
 
 // setupCore is a function with the common part of the process in setting up the shared secret for different HPKE variants
 // Section 6.1. https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6.1
-func setupCore(params *Params, mode byte, secret, kemContext, info []byte) (key, nonce []byte, err error) {
-	context := make([]byte, 4+len(info)+len(kemContext))
+func setupCore(params *Params, mode byte, secret, kemContext []byte) (key []byte, err error) {
+	context := make([]byte, 3+len(kemContext))
 	context[0] = params.ciphersuite
 	context[1] = mode
 	context[2] = uint8(len(kemContext))
 	copy(context[3:3+len(kemContext)], kemContext)
-	context[len(kemContext)+3] = uint8(len(info))
-	copy(context[len(kemContext)+4:], info)
 
 	key = make([]byte, params.nk)
-	nonce = make([]byte, nn)
-	if _, err = hkdf.Expand(params.hashFn, secret, append([]byte("hpke key"), context...)).Read(key); err != nil {
-		return
-	}
-	_, err = hkdf.Expand(params.hashFn, secret, append([]byte("hpke nonce"), context...)).Read(nonce)
+	_, err = hkdf.Expand(params.hashFn, secret, append([]byte("hpke key"), context...)).Read(key)
 	return
 }
 
 // setupBase is the common setup in the base mode for the Initiator and the Receiver
 // Section 6.1. https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6.1
-func setupBase(params *Params, pkR crypto.PublicKey, shared, enc, info []byte) (key, nonce []byte, err error) {
+func setupBase(params *Params, pkR crypto.PublicKey, shared, enc []byte) (key []byte, err error) {
 	pkRBytes, err := Marshall(params, pkR)
 	if err != nil {
 		err = errors.New("incorrect receiver's public key")
@@ -175,12 +169,12 @@ func setupBase(params *Params, pkR crypto.PublicKey, shared, enc, info []byte) (
 	}
 	kemContext := append(enc, pkRBytes...)
 	secret := hkdf.Extract(params.hashFn, shared, make([]byte, params.nh))
-	return setupCore(params, mode_base, secret, kemContext, info)
+	return setupCore(params, mode_base, secret, kemContext)
 }
 
 // setupPSK is the common setup in the psk mode for the Initiator and the Receiver
 // Section 6.2. https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6.2
-func setupPsk(params *Params, pkR crypto.PublicKey, psk, pskID, shared, enc, info []byte) (key, nonce []byte, err error) {
+func setupPsk(params *Params, pkR crypto.PublicKey, psk, pskID, shared, enc []byte) (key []byte, err error) {
 	pkRBytes, err := Marshall(params, pkR)
 	if err != nil {
 		err = errors.New("incorrect receiver's public key")
@@ -189,12 +183,12 @@ func setupPsk(params *Params, pkR crypto.PublicKey, psk, pskID, shared, enc, inf
 	kemContext := append(enc, pkRBytes...)
 	kemContext = append(kemContext, pskID...)
 	secret := hkdf.Extract(params.hashFn, shared, psk)
-	return setupCore(params, mode_psk, secret, kemContext, info)
+	return setupCore(params, mode_psk, secret, kemContext)
 }
 
 // setupAuth is the common setup in the auth mode for the Initiator and the Receiver
 // Section 6.3. https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6.3
-func setupAuth(params *Params, pkR, pkI crypto.PublicKey, shared, enc, info []byte) (key, nonce []byte, err error) {
+func setupAuth(params *Params, pkR, pkI crypto.PublicKey, shared, enc []byte) (key []byte, err error) {
 	// TODO: kemContext := append(pkE, pkR, pkI...)
 	pkRBytes, err := Marshall(params, pkR)
 	if err != nil {
@@ -209,71 +203,71 @@ func setupAuth(params *Params, pkR, pkI crypto.PublicKey, shared, enc, info []by
 	kemContext := append(enc, pkRBytes...)
 	kemContext = append(kemContext, pkIBytes...)
 	secret := hkdf.Extract(params.hashFn, shared, make([]byte, params.nh))
-	return setupCore(params, mode_auth, secret, kemContext, info)
+	return setupCore(params, mode_auth, secret, kemContext)
 }
 
 // setupBaseI is the setup for the Initiator in the base mode
 // Section 6.1. https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6.1
-func setupBaseI(params *Params, pkR crypto.PublicKey, random io.Reader, info []byte) (key, nonce, enc []byte, err error) {
+func setupBaseI(params *Params, pkR crypto.PublicKey, random io.Reader) (key, enc []byte, err error) {
 	shared, enc, err := encap(params, pkR, random)
 	if err != nil {
 		return
 	}
-	key, nonce, err = setupBase(params, pkR, shared, enc, info)
+	key, err = setupBase(params, pkR, shared, enc)
 	return
 }
 
 // setupBaseR is the setup for the Receiver in the base mode
 // Section 6.1. https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6.1
-func setupBaseR(params *Params, skR crypto.PrivateKey, enc, info []byte) (key, nonce []byte, err error) {
+func setupBaseR(params *Params, skR crypto.PrivateKey, enc []byte) (key []byte, err error) {
 	shared, err := decap(params, skR, enc)
 	if err != nil {
 		return
 	}
-	return setupBase(params, params.curve.PublicKey(skR), shared, enc, info)
+	return setupBase(params, params.curve.PublicKey(skR), shared, enc)
 }
 
 // setupPSKI is the setup for the Initiator in the psk mode
 // Section 6.2. https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6.2
-func setupPskI(params *Params, pkR crypto.PublicKey, random io.Reader, psk, pskID, info []byte) (key, nonce, enc []byte, err error) {
+func setupPskI(params *Params, pkR crypto.PublicKey, random io.Reader, psk, pskID []byte) (key, enc []byte, err error) {
 	shared, enc, err := encap(params, pkR, random)
 	if err != nil {
 		return
 	}
-	key, nonce, err = setupPsk(params, pkR, psk, pskID, shared, enc, info)
+	key, err = setupPsk(params, pkR, psk, pskID, shared, enc)
 	return
 }
 
 // setupPskR is the setup for the Receiver in the psk mode
 // Section 6.2. https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6.2
-func setupPskR(params *Params, skR crypto.PrivateKey, enc, psk, pskID, info []byte) (key, nonce []byte, err error) {
+func setupPskR(params *Params, skR crypto.PrivateKey, enc, psk, pskID []byte) (key []byte, err error) {
 	shared, err := decap(params, skR, enc)
 	if err != nil {
 		return
 	}
-	return setupPsk(params, params.curve.PublicKey(skR), psk, pskID, shared, enc, info)
+	return setupPsk(params, params.curve.PublicKey(skR), psk, pskID, shared, enc)
 }
 
 // setupAuthI is the setup for the Initiator in the auth mode
 // Section 6.3. https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6.3
-func setupAuthI(params *Params, pkR crypto.PublicKey, skI crypto.PrivateKey, random io.Reader, info []byte) (key, nonce, enc []byte, err error) {
+func setupAuthI(params *Params, pkR crypto.PublicKey, skI crypto.PrivateKey, random io.Reader) (key, enc []byte, err error) {
 	shared, enc, err := authEncap(params, pkR, skI, random)
 	if err != nil {
 		return
 	}
-	key, nonce, err = setupAuth(params, pkR, params.curve.PublicKey(skI), shared, enc, info)
+	key, err = setupAuth(params, pkR, params.curve.PublicKey(skI), shared, enc)
 	return
 
 }
 
 // setupAuthR is the setup for the Receiver in the auth mode
 // Section 6.3. https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6.3
-func setupAuthR(params *Params, skR crypto.PrivateKey, pkI crypto.PublicKey, enc, info []byte) (key, nonce []byte, err error) {
+func setupAuthR(params *Params, skR crypto.PrivateKey, pkI crypto.PublicKey, enc []byte) (key []byte, err error) {
 	shared, err := authDecap(params, skR, pkI, enc)
 	if err != nil {
 		return
 	}
-	return setupAuth(params, params.curve.PublicKey(skR), pkI, shared, enc, info)
+	return setupAuth(params, params.curve.PublicKey(skR), pkI, shared, enc)
 }
 
 // return the appropriate aead ciphersuite based on params
@@ -314,23 +308,19 @@ func xorNonce(nonce []byte, seq, nonceSize int) []byte {
 	return nonce
 }
 
-func encryptSymmetric(rand io.Reader, cphr cipher.AEAD, pt, aad, nonce []byte, seq int) (ct []byte, err error) {
-	if nonce == nil || len(nonce) != cphr.NonceSize() {
-		err = errors.New("nonce is incorrect")
+func encryptSymmetric(rand io.Reader, cphr cipher.AEAD, pt, aad []byte) (ct []byte, err error) {
+	nonce := make([]byte, cphr.NonceSize())
+	_, err = io.ReadFull(rand, nonce)
+	if err != nil {
 		return
 	}
-	nonce = xorNonce(nonce, seq, cphr.NonceSize())
 	ct = cphr.Seal(nil, nonce, pt, aad)
 	ct = append(nonce, ct...)
 	return
 }
 
-func decryptSymmetric(cphr cipher.AEAD, ct, aad, nonce []byte, seq int) (pt []byte, err error) {
-	if nonce == nil || len(nonce) != cphr.NonceSize() {
-		err = errors.New("nonce is incorrect")
-		return
-	}
-	nonce = xorNonce(nonce, seq, cphr.NonceSize())
+func decryptSymmetric(cphr cipher.AEAD, ct, aad []byte) (pt []byte, err error) {
+	nonce := ct[:cphr.NonceSize()]
 	pt, err = cphr.Open(nil, nonce, ct[cphr.NonceSize():], aad)
 	return
 }
@@ -339,7 +329,7 @@ func decryptSymmetric(cphr cipher.AEAD, ct, aad, nonce []byte, seq int) (pt []by
 // Optional arguments:
 //    `random` is optional. If `nil` crypto/rand.Reader is used
 //    `aad` and `info` are optional.
-func EncryptBase(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad, info []byte, counter int) (ct, enc []byte, err error) {
+func EncryptBase(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad []byte) (ct, enc []byte, err error) {
 	if params.mode != mode_base {
 		err = errors.New("params specify different mode")
 		return
@@ -349,7 +339,7 @@ func EncryptBase(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad
 		random = rand.Reader
 	}
 
-	key, nonce, enc, err := setupBaseI(params, pkR, random, info)
+	key, enc, err := setupBaseI(params, pkR, random)
 	if err != nil {
 		return
 	}
@@ -359,7 +349,7 @@ func EncryptBase(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad
 		return
 	}
 
-	ct, err = encryptSymmetric(random, cphr, pt, aad, nonce, counter)
+	ct, err = encryptSymmetric(random, cphr, pt, aad)
 	if err != nil {
 		return
 	}
@@ -367,20 +357,20 @@ func EncryptBase(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad
 }
 
 // DecryptBase is a function for decryption in the base mode
-func DecryptBase(params *Params, skR crypto.PrivateKey, enc, ct, aad, info []byte, counter int) (pt []byte, err error) {
+func DecryptBase(params *Params, skR crypto.PrivateKey, enc, ct, aad []byte) (pt []byte, err error) {
 	if params.mode != mode_base {
 		err = errors.New("params specify different mode")
 		return
 	}
 
-	key, nonce, err := setupBaseR(params, skR, enc, info)
+	key, err := setupBaseR(params, skR, enc)
 
 	cphr, err := getAead(params, key)
 	if err != nil {
 		return
 	}
 
-	pt, err = decryptSymmetric(cphr, ct, aad, nonce, counter)
+	pt, err = decryptSymmetric(cphr, ct, aad)
 	if err != nil {
 		return
 	}
@@ -391,7 +381,7 @@ func DecryptBase(params *Params, skR crypto.PrivateKey, enc, ct, aad, info []byt
 // Optional arguments:
 //    `random` is optional. If `nil` crypto/rand.Reader is used
 //    `aad` and `info` are optional.
-func EncryptPSK(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad, psk, pskID, info []byte, counter int) (ct, enc []byte, err error) {
+func EncryptPSK(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad, psk, pskID []byte) (ct, enc []byte, err error) {
 	if params.mode != mode_psk {
 		err = errors.New("params specify different mode")
 		return
@@ -401,7 +391,7 @@ func EncryptPSK(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad,
 		random = rand.Reader
 	}
 
-	key, nonce, enc, err := setupPskI(params, pkR, random, psk, pskID, info)
+	key, enc, err := setupPskI(params, pkR, random, psk, pskID)
 	if err != nil {
 		return
 	}
@@ -411,7 +401,7 @@ func EncryptPSK(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad,
 		return
 	}
 
-	ct, err = encryptSymmetric(random, cphr, pt, aad, nonce, counter)
+	ct, err = encryptSymmetric(random, cphr, pt, aad)
 	if err != nil {
 		return
 	}
@@ -419,20 +409,20 @@ func EncryptPSK(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad,
 }
 
 // DecryptPSK is a function for decryption in the pre-shared key mode
-func DecryptPSK(params *Params, skR crypto.PrivateKey, enc, ct, aad, psk, pskID, info []byte, counter int) (pt []byte, err error) {
+func DecryptPSK(params *Params, skR crypto.PrivateKey, enc, ct, aad, psk, pskID []byte) (pt []byte, err error) {
 	if params.mode != mode_psk {
 		err = errors.New("params specify different mode")
 		return
 	}
 
-	key, nonce, err := setupPskR(params, skR, enc, psk, pskID, info)
+	key, err := setupPskR(params, skR, enc, psk, pskID)
 
 	cphr, err := getAead(params, key)
 	if err != nil {
 		return
 	}
 
-	pt, err = decryptSymmetric(cphr, ct, aad, nonce, counter)
+	pt, err = decryptSymmetric(cphr, ct, aad)
 	if err != nil {
 		return
 	}
@@ -443,7 +433,7 @@ func DecryptPSK(params *Params, skR crypto.PrivateKey, enc, ct, aad, psk, pskID,
 // Optional arguments:
 //    `random` is optional. If `nil` crypto/rand.Reader is used
 //    `aad` and `info` are optional.
-func EncryptAuth(params *Params, random io.Reader, pkR crypto.PublicKey, skI crypto.PrivateKey, pt, aad, info []byte, counter int) (ct, enc []byte, err error) {
+func EncryptAuth(params *Params, random io.Reader, pkR crypto.PublicKey, skI crypto.PrivateKey, pt, aad []byte) (ct, enc []byte, err error) {
 	if params.mode != mode_auth {
 		err = errors.New("params specify different mode")
 		return
@@ -453,7 +443,7 @@ func EncryptAuth(params *Params, random io.Reader, pkR crypto.PublicKey, skI cry
 		random = rand.Reader
 	}
 
-	key, nonce, enc, err := setupAuthI(params, pkR, skI, random, info)
+	key, enc, err := setupAuthI(params, pkR, skI, random)
 	if err != nil {
 		return
 	}
@@ -463,7 +453,7 @@ func EncryptAuth(params *Params, random io.Reader, pkR crypto.PublicKey, skI cry
 		return
 	}
 
-	ct, err = encryptSymmetric(random, cphr, pt, aad, nonce, counter)
+	ct, err = encryptSymmetric(random, cphr, pt, aad)
 	if err != nil {
 		return
 	}
@@ -471,20 +461,20 @@ func EncryptAuth(params *Params, random io.Reader, pkR crypto.PublicKey, skI cry
 }
 
 // DecryptAuth is a function for decryption in the asymmetric key mode
-func DecryptAuth(params *Params, skR crypto.PrivateKey, pkI crypto.PublicKey, enc, ct, aad, info []byte, counter int) (pt []byte, err error) {
+func DecryptAuth(params *Params, skR crypto.PrivateKey, pkI crypto.PublicKey, enc, ct, aad []byte) (pt []byte, err error) {
 	if params.mode != mode_auth {
 		err = errors.New("params specify different mode")
 		return
 	}
 
-	key, nonce, err := setupAuthR(params, skR, pkI, enc, info)
+	key, err := setupAuthR(params, skR, pkI, enc)
 
 	cphr, err := getAead(params, key)
 	if err != nil {
 		return
 	}
 
-	pt, err = decryptSymmetric(cphr, ct, aad, nonce, counter)
+	pt, err = decryptSymmetric(cphr, ct, aad)
 	if err != nil {
 		return
 	}
