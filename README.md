@@ -17,12 +17,17 @@ Referenced from [section 6](https://tools.ietf.org/html/draft-barnes-cfrg-hpke-0
 |-------------------------------------------|---------------|---------------|-------------------|
 | \<mode\>_X25519_SHA256_AES_GCM_128        | Curve25519    | HKDF-SHA256   | AES-GCM-128       |
 | \<mode\>_X25519_SHA256_ChaCha20Poly1305   | Curve25519    | HKDF-SHA256   | ChaCha20Poly1305  |
+| \<mode\>_X25519_SHA256_XChaCha20Blake2bSIV| Curve25519    | HKDF-SHA256   | XChaCha20Blake2b  |
 | \<mode\>_P256_SHA256_AES_GCM_128          | P-256         | HKDF-SHA256   | AES-GCM-128       |
 | \<mode\>_P256_SHA256_ChaCha20Poly1305     | P-256         | HKDF-SHA256   | ChaCha20Poly1305  |
+| \<mode\>_P256_SHA256_XChaCha20Blake2bSIV  | P-256         | HKDF-SHA256   | XChaCha20Blake2b  |
 | \<mode\>_P521_SHA512_AES_GCM_256          | P-521         | HKDF-SHA512   | AES-GCM-256       |
 | \<mode\>_P521_SHA512_ChaCha20Poly1305     | P-521         | HKDF-SHA512   | ChaCha20Poly1305  |
+| \<mode\>_P521_SHA256_XChaCha20Blake2bSIV  | P-521         | HKDF-SHA512   | XChaCha20Blake2b  |
 
 See [section 6](https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6) for reference.
+
+On top of the AEAD primitives from the draft, implements one more (experimental) AEAD construction with [XChaCha20Blake2b in the synthetic IV](https://github.com/danielhavir/xchacha20blake2b) construction (i.e. no nonce)
 
 Examples: BASE_X25519_SHA256_AES_GCM_128, PSK_P256_SHA256_ChaCha20Poly1305, AUTH_P521_SHA512_ChaCha20Poly1305
 
@@ -41,7 +46,7 @@ import (
 )
 
 func main() {
-    params := hpke.GetParams(hpke.BASE_X25519_SHA256_ChaCha20Poly1305)
+    params := hpke.GetParams(hpke.BASE_X25519_SHA256_XChaCha20Blake2bSIV)
     
     random := rand.Reader
     prv, pub, err := hpke.GenerateKeypair(params, random)

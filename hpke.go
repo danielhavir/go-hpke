@@ -10,6 +10,7 @@ import (
 	"math/big"
 
 	"github.com/aead/ecdh"
+	"github.com/danielhavir/xchacha20blake2b"
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/hkdf"
 )
@@ -73,9 +74,9 @@ func marshallGeneric(key ecdh.Point, byteSize int) (pubBytes []byte) {
 // the public key from byte array after marshall
 func Unmarshall(params *Params, keyBytes []byte) (pub crypto.PublicKey, err error) {
 	switch params.ciphersuite {
-	case 1, 2, 5, 6:
+	case 1, 2, 5, 6, 7, 9:
 		pub = unmarshallGeneric(keyBytes, (params.curve.Params().BitSize+7)>>3)
-	case 3, 4:
+	case 3, 4, 8:
 		if len(keyBytes) == 32 {
 			pub = keyBytes
 		} else {
@@ -287,6 +288,11 @@ func getAead(params *Params, key []byte) (cphr cipher.AEAD, err error) {
 		if err != nil {
 			return
 		}
+	case 7, 8, 9:
+		cphr, err = xchacha20blake2b.New(key)
+		if err != nil {
+			return
+		}
 	default:
 		err = errors.New("unknown cipher choice")
 		return
@@ -308,10 +314,19 @@ func xorNonce(nonce []byte, seq, nonceSize int) []byte {
 	return nonce
 }
 
-func encryptSymmetric(rand io.Reader, cphr cipher.AEAD, pt, aad []byte) (ct []byte, err error) {
-	nonce := make([]byte, cphr.NonceSize())
-	_, err = io.ReadFull(rand, nonce)
-	if err != nil {
+func encryptSymmetric(params *Params, rand io.Reader, cphr cipher.AEAD, pt, aad []byte) (ct []byte, err error) {
+	var nonce []byte
+	switch params.ciphersuite {
+	case 1, 2, 3, 4, 5, 6:
+		nonce = make([]byte, cphr.NonceSize())
+		_, err = io.ReadFull(rand, nonce)
+		if err != nil {
+			return
+		}
+	case 7, 8, 9:
+		nonce = nil
+	default:
+		err = errors.New("unknown ciphersuite")
 		return
 	}
 	ct = cphr.Seal(nil, nonce, pt, aad)
@@ -319,9 +334,17 @@ func encryptSymmetric(rand io.Reader, cphr cipher.AEAD, pt, aad []byte) (ct []by
 	return
 }
 
-func decryptSymmetric(cphr cipher.AEAD, ct, aad []byte) (pt []byte, err error) {
-	nonce := ct[:cphr.NonceSize()]
-	pt, err = cphr.Open(nil, nonce, ct[cphr.NonceSize():], aad)
+func decryptSymmetric(params *Params, cphr cipher.AEAD, ct, aad []byte) (pt []byte, err error) {
+	switch params.ciphersuite {
+	case 1, 2, 3, 4, 5, 6:
+		nonce := ct[:cphr.NonceSize()]
+		pt, err = cphr.Open(nil, nonce, ct[cphr.NonceSize():], aad)
+	case 7, 8, 9:
+		pt, err = cphr.Open(nil, nil, ct, aad)
+	default:
+		err = errors.New("unknown ciphersuite")
+		return
+	}
 	return
 }
 
@@ -349,7 +372,7 @@ func EncryptBase(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad
 		return
 	}
 
-	ct, err = encryptSymmetric(random, cphr, pt, aad)
+	ct, err = encryptSymmetric(params, random, cphr, pt, aad)
 	if err != nil {
 		return
 	}
@@ -370,7 +393,7 @@ func DecryptBase(params *Params, skR crypto.PrivateKey, enc, ct, aad []byte) (pt
 		return
 	}
 
-	pt, err = decryptSymmetric(cphr, ct, aad)
+	pt, err = decryptSymmetric(params, cphr, ct, aad)
 	if err != nil {
 		return
 	}
@@ -401,7 +424,7 @@ func EncryptPSK(params *Params, random io.Reader, pkR crypto.PublicKey, pt, aad,
 		return
 	}
 
-	ct, err = encryptSymmetric(random, cphr, pt, aad)
+	ct, err = encryptSymmetric(params, random, cphr, pt, aad)
 	if err != nil {
 		return
 	}
@@ -422,7 +445,7 @@ func DecryptPSK(params *Params, skR crypto.PrivateKey, enc, ct, aad, psk, pskID 
 		return
 	}
 
-	pt, err = decryptSymmetric(cphr, ct, aad)
+	pt, err = decryptSymmetric(params, cphr, ct, aad)
 	if err != nil {
 		return
 	}
@@ -453,7 +476,7 @@ func EncryptAuth(params *Params, random io.Reader, pkR crypto.PublicKey, skI cry
 		return
 	}
 
-	ct, err = encryptSymmetric(random, cphr, pt, aad)
+	ct, err = encryptSymmetric(params, random, cphr, pt, aad)
 	if err != nil {
 		return
 	}
@@ -474,7 +497,7 @@ func DecryptAuth(params *Params, skR crypto.PrivateKey, pkI crypto.PublicKey, en
 		return
 	}
 
-	pt, err = decryptSymmetric(cphr, ct, aad)
+	pt, err = decryptSymmetric(params, cphr, ct, aad)
 	if err != nil {
 		return
 	}

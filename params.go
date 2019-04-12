@@ -46,6 +46,16 @@ const (
 	PSK_P521_SHA512_ChaCha20Poly1305
 	AUTH_P521_SHA512_AES_GCM_256
 	AUTH_P521_SHA512_ChaCha20Poly1305
+
+	BASE_P256_SHA256_XChaCha20Blake2bSIV
+	PSK_P256_SHA256_XChaCha20Blake2bSIV
+	AUTH_P256_SHA256_XChaCha20Blake2bSIV
+	BASE_X25519_SHA256_XChaCha20Blake2bSIV
+	PSK_X25519_SHA256_XChaCha20Blake2bSIV
+	AUTH_X25519_SHA256_XChaCha20Blake2bSIV
+	BASE_P521_SHA256_XChaCha20Blake2bSIV
+	PSK_P521_SHA256_XChaCha20Blake2bSIV
+	AUTH_P521_SHA256_XChaCha20Blake2bSIV
 )
 
 const nn = uint8(12)
@@ -72,6 +82,16 @@ func GetParams(mode byte) (*Params, error) {
 			ciphersuite: 2,
 			mode:        mode_base,
 		}, nil
+	case BASE_P256_SHA256_XChaCha20Blake2bSIV:
+		return &Params{
+			curve: ecdh.Generic(elliptic.P256()),
+			// bitSize: 256,
+			hashFn:      sha256.New,
+			nk:          64,
+			nh:          32,
+			ciphersuite: 7,
+			mode:        mode_base,
+		}, nil
 	case PSK_P256_SHA256_AES_GCM_128:
 		return &Params{
 			curve: ecdh.Generic(elliptic.P256()),
@@ -90,6 +110,16 @@ func GetParams(mode byte) (*Params, error) {
 			nk:          32,
 			nh:          32,
 			ciphersuite: 2,
+			mode:        mode_psk,
+		}, nil
+	case PSK_P256_SHA256_XChaCha20Blake2bSIV:
+		return &Params{
+			curve: ecdh.Generic(elliptic.P256()),
+			// bitSize: 256,
+			hashFn:      sha256.New,
+			nk:          64,
+			nh:          32,
+			ciphersuite: 7,
 			mode:        mode_psk,
 		}, nil
 	case AUTH_P256_SHA256_AES_GCM_128:
@@ -112,6 +142,16 @@ func GetParams(mode byte) (*Params, error) {
 			ciphersuite: 2,
 			mode:        mode_auth,
 		}, nil
+	case AUTH_P256_SHA256_XChaCha20Blake2bSIV:
+		return &Params{
+			curve: ecdh.Generic(elliptic.P256()),
+			// bitSize: 256,
+			hashFn:      sha256.New,
+			nk:          64,
+			nh:          32,
+			ciphersuite: 7,
+			mode:        mode_auth,
+		}, nil
 	case BASE_X25519_SHA256_AES_GCM_128:
 		return &Params{
 			curve: ecdh.X25519(),
@@ -130,6 +170,16 @@ func GetParams(mode byte) (*Params, error) {
 			nk:          32,
 			nh:          32,
 			ciphersuite: 4,
+			mode:        mode_base,
+		}, nil
+	case BASE_X25519_SHA256_XChaCha20Blake2bSIV:
+		return &Params{
+			curve: ecdh.X25519(),
+			// bitSize: 256,
+			hashFn:      sha256.New,
+			nk:          64,
+			nh:          32,
+			ciphersuite: 8,
 			mode:        mode_base,
 		}, nil
 	case PSK_X25519_SHA256_AES_GCM_128:
@@ -152,6 +202,16 @@ func GetParams(mode byte) (*Params, error) {
 			ciphersuite: 4,
 			mode:        mode_psk,
 		}, nil
+	case PSK_X25519_SHA256_XChaCha20Blake2bSIV:
+		return &Params{
+			curve: ecdh.X25519(),
+			// bitSize: 256,
+			hashFn:      sha256.New,
+			nk:          64,
+			nh:          32,
+			ciphersuite: 8,
+			mode:        mode_psk,
+		}, nil
 	case AUTH_X25519_SHA256_AES_GCM_128:
 		return &Params{
 			curve: ecdh.X25519(),
@@ -172,10 +232,19 @@ func GetParams(mode byte) (*Params, error) {
 			ciphersuite: 4,
 			mode:        mode_auth,
 		}, nil
+	case AUTH_X25519_SHA256_XChaCha20Blake2bSIV:
+		return &Params{
+			curve: ecdh.X25519(),
+			// bitSize: 256,
+			hashFn:      sha256.New,
+			nk:          64,
+			nh:          32,
+			ciphersuite: 8,
+			mode:        mode_auth,
+		}, nil
 	case BASE_P521_SHA512_AES_GCM_256:
 		return &Params{
-			curve: ecdh.Generic(elliptic.P521()),
-			// bitSize: 512,
+			curve:       ecdh.Generic(elliptic.P521()),
 			hashFn:      sha512.New,
 			nk:          32,
 			nh:          64,
@@ -184,18 +253,25 @@ func GetParams(mode byte) (*Params, error) {
 		}, nil
 	case BASE_P521_SHA512_ChaCha20Poly1305:
 		return &Params{
-			curve: ecdh.Generic(elliptic.P521()),
-			// bitSize: 512,
+			curve:       ecdh.Generic(elliptic.P521()),
 			hashFn:      sha512.New,
 			nk:          32,
 			nh:          64,
 			ciphersuite: 6,
 			mode:        mode_base,
 		}, nil
+	case BASE_P521_SHA256_XChaCha20Blake2bSIV:
+		return &Params{
+			curve:       ecdh.Generic(elliptic.P521()),
+			hashFn:      sha256.New,
+			nk:          64,
+			nh:          32,
+			ciphersuite: 9,
+			mode:        mode_base,
+		}, nil
 	case PSK_P521_SHA512_AES_GCM_256:
 		return &Params{
-			curve: ecdh.Generic(elliptic.P521()),
-			// bitSize: 512,
+			curve:       ecdh.Generic(elliptic.P521()),
 			hashFn:      sha512.New,
 			nk:          32,
 			nh:          64,
@@ -204,18 +280,25 @@ func GetParams(mode byte) (*Params, error) {
 		}, nil
 	case PSK_P521_SHA512_ChaCha20Poly1305:
 		return &Params{
-			curve: ecdh.Generic(elliptic.P521()),
-			// bitSize: 512,
+			curve:       ecdh.Generic(elliptic.P521()),
 			hashFn:      sha512.New,
 			nk:          32,
 			nh:          64,
 			ciphersuite: 6,
 			mode:        mode_psk,
 		}, nil
+	case PSK_P521_SHA256_XChaCha20Blake2bSIV:
+		return &Params{
+			curve:       ecdh.Generic(elliptic.P521()),
+			hashFn:      sha256.New,
+			nk:          64,
+			nh:          32,
+			ciphersuite: 9,
+			mode:        mode_psk,
+		}, nil
 	case AUTH_P521_SHA512_AES_GCM_256:
 		return &Params{
-			curve: ecdh.Generic(elliptic.P521()),
-			// bitSize: 512,
+			curve:       ecdh.Generic(elliptic.P521()),
 			hashFn:      sha512.New,
 			nk:          32,
 			nh:          64,
@@ -224,12 +307,20 @@ func GetParams(mode byte) (*Params, error) {
 		}, nil
 	case AUTH_P521_SHA512_ChaCha20Poly1305:
 		return &Params{
-			curve: ecdh.Generic(elliptic.P521()),
-			// bitSize: 512,
+			curve:       ecdh.Generic(elliptic.P521()),
 			hashFn:      sha512.New,
 			nk:          32,
 			nh:          64,
 			ciphersuite: 6,
+			mode:        mode_auth,
+		}, nil
+	case AUTH_P521_SHA256_XChaCha20Blake2bSIV:
+		return &Params{
+			curve:       ecdh.Generic(elliptic.P521()),
+			hashFn:      sha256.New,
+			nk:          64,
+			nh:          32,
+			ciphersuite: 9,
 			mode:        mode_auth,
 		}, nil
 	default:

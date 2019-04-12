@@ -81,6 +81,30 @@ func TestBASE_P521_SHA512_ChaCha20Poly1305(t *testing.T) {
 	testBaseHPKE(t, params)
 }
 
+func TestBASE_P256_SHA256_XChaCha20Blake2bSIV(t *testing.T) {
+	params, err := GetParams(BASE_P256_SHA256_XChaCha20Blake2bSIV)
+	if err != nil {
+		t.Error(err)
+	}
+	testBaseHPKE(t, params)
+}
+
+func TestBASE_X25519_SHA256_XChaCha20Blake2bSIV(t *testing.T) {
+	params, err := GetParams(BASE_X25519_SHA256_XChaCha20Blake2bSIV)
+	if err != nil {
+		t.Error(err)
+	}
+	testBaseHPKE(t, params)
+}
+
+func TestBASE_P521_SHA256_XChaCha20Blake2bSIV(t *testing.T) {
+	params, err := GetParams(BASE_P521_SHA256_XChaCha20Blake2bSIV)
+	if err != nil {
+		t.Error(err)
+	}
+	testBaseHPKE(t, params)
+}
+
 func testPSKHPKE(t *testing.T, params *Params) {
 	random := rand.Reader
 	prv, pub, err := GenerateKeyPair(params, random)
@@ -169,6 +193,30 @@ func TestPSK_P521_SHA512_ChaCha20Poly1305(t *testing.T) {
 	testPSKHPKE(t, params)
 }
 
+func TestPSK_P256_SHA256_XChaCha20Blake2bSIV(t *testing.T) {
+	params, err := GetParams(PSK_P256_SHA256_XChaCha20Blake2bSIV)
+	if err != nil {
+		t.Error(err)
+	}
+	testPSKHPKE(t, params)
+}
+
+func TestPSK_X25519_SHA256_XChaCha20Blake2bSIV(t *testing.T) {
+	params, err := GetParams(PSK_X25519_SHA256_XChaCha20Blake2bSIV)
+	if err != nil {
+		t.Error(err)
+	}
+	testPSKHPKE(t, params)
+}
+
+func TestPSK_P521_SHA256_XChaCha20Blake2bSIV(t *testing.T) {
+	params, err := GetParams(PSK_P521_SHA256_XChaCha20Blake2bSIV)
+	if err != nil {
+		t.Error(err)
+	}
+	testPSKHPKE(t, params)
+}
+
 func testAuthHPKE(t *testing.T, params *Params) {
 	random := rand.Reader
 	skI, pkI, err := GenerateKeyPair(params, random)
@@ -251,6 +299,30 @@ func TestAUTH_P521_SHA512_AES_GCM_256(t *testing.T) {
 
 func TestAUTH_P521_SHA512_ChaCha20Poly1305(t *testing.T) {
 	params, err := GetParams(AUTH_P521_SHA512_ChaCha20Poly1305)
+	if err != nil {
+		t.Error(err)
+	}
+	testAuthHPKE(t, params)
+}
+
+func TestAUTH_P256_SHA256_XChaCha20Blake2bSIV(t *testing.T) {
+	params, err := GetParams(AUTH_P256_SHA256_XChaCha20Blake2bSIV)
+	if err != nil {
+		t.Error(err)
+	}
+	testAuthHPKE(t, params)
+}
+
+func TestAUTH_X25519_SHA256_XChaCha20Blake2bSIV(t *testing.T) {
+	params, err := GetParams(AUTH_X25519_SHA256_XChaCha20Blake2bSIV)
+	if err != nil {
+		t.Error(err)
+	}
+	testAuthHPKE(t, params)
+}
+
+func TestAUTH_P521_SHA256_XChaCha20Blake2bSIV(t *testing.T) {
+	params, err := GetParams(AUTH_P521_SHA256_XChaCha20Blake2bSIV)
 	if err != nil {
 		t.Error(err)
 	}
