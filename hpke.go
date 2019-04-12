@@ -27,12 +27,12 @@ func GenerateKeyPair(params *Params, random io.Reader) (private crypto.PrivateKe
 // or byte array
 // Reference 1: https://github.com/aead/ecdh/blob/master/generic.go#L99-L121
 // Reference 2: https://github.com/aead/ecdh/blob/master/curve25519.go#L88-L108
-func Marshall(key interface{}) (keyBytes []byte, err error) {
+func Marshall(params *Params, key interface{}) (keyBytes []byte, err error) {
 	switch t := key.(type) {
 	case ecdh.Point:
-		keyBytes = marshallGeneric(t)
+		keyBytes = marshallGeneric(t, (params.curve.Params().BitSize+7)>>3)
 	case *ecdh.Point:
-		keyBytes = marshallGeneric(*t)
+		keyBytes = marshallGeneric(*t, (params.curve.Params().BitSize+7)>>3)
 	case [32]byte:
 		keyBytes = make([]byte, 32)
 		copy(keyBytes[:], t[:])
@@ -60,13 +60,12 @@ func Marshall(key interface{}) (keyBytes []byte, err error) {
 }
 
 // helper function for marshalling a point on an elliptic curve into a byte array
-func marshallGeneric(key ecdh.Point) (pubBytes []byte) {
-	xBytes := uint8(len(key.X.Bytes()))
-	yBytes := uint8(len(key.Y.Bytes()))
-	pubBytes = make([]byte, 1+xBytes+yBytes)
-	pubBytes[0] = xBytes
-	copy(pubBytes[1:xBytes+1], key.X.Bytes())
-	copy(pubBytes[xBytes+1:], key.Y.Bytes())
+func marshallGeneric(key ecdh.Point, byteSize int) (pubBytes []byte) {
+	pubBytes = make([]byte, 2*byteSize)
+	offset := byteSize - len(key.X.Bytes())
+	copy(pubBytes[offset:byteSize], key.X.Bytes())
+	offset = byteSize - len(key.Y.Bytes())
+	copy(pubBytes[byteSize+offset:], key.Y.Bytes())
 	return
 }
 
@@ -75,7 +74,7 @@ func marshallGeneric(key ecdh.Point) (pubBytes []byte) {
 func Unmarshall(params *Params, keyBytes []byte) (pub crypto.PublicKey, err error) {
 	switch params.ciphersuite {
 	case 1, 2, 5, 6:
-		pub = unmarshallGeneric(keyBytes)
+		pub = unmarshallGeneric(keyBytes, (params.curve.Params().BitSize+7)>>3)
 	case 3, 4:
 		if len(keyBytes) == 32 {
 			pub = keyBytes
@@ -89,10 +88,9 @@ func Unmarshall(params *Params, keyBytes []byte) (pub crypto.PublicKey, err erro
 }
 
 // helper function for unmarshalling a point on an elliptic curve to a byte array
-func unmarshallGeneric(pubBytes []byte) (key ecdh.Point) {
-	xBytes := uint8(pubBytes[0])
-	x := new(big.Int).SetBytes(pubBytes[1 : xBytes+1])
-	y := new(big.Int).SetBytes(pubBytes[xBytes+1:])
+func unmarshallGeneric(pubBytes []byte, byteSize int) (key ecdh.Point) {
+	x := new(big.Int).SetBytes(pubBytes[:byteSize])
+	y := new(big.Int).SetBytes(pubBytes[byteSize:])
 	return ecdh.Point{X: x, Y: y}
 }
 
@@ -104,7 +102,7 @@ func encap(params *Params, pkR crypto.PublicKey, random io.Reader) (shared, enc 
 		return
 	}
 	shared = params.curve.ComputeSecret(skE, pkR)
-	enc, err = Marshall(pkE)
+	enc, err = Marshall(params, pkE)
 	return
 }
 
@@ -129,7 +127,7 @@ func authEncap(params *Params, pkR crypto.PublicKey, skI crypto.PrivateKey, rand
 		return
 	}
 	shared = append(params.curve.ComputeSecret(skE, pkR), params.curve.ComputeSecret(skI, pkR)...)
-	enc, err = Marshall(pkE)
+	enc, err = Marshall(params, pkE)
 	return
 }
 
@@ -170,7 +168,7 @@ func setupCore(params *Params, mode byte, secret, kemContext, info []byte) (key,
 // setupBase is the common setup in the base mode for the Initiator and the Receiver
 // Section 6.1. https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6.1
 func setupBase(params *Params, pkR crypto.PublicKey, shared, enc, info []byte) (key, nonce []byte, err error) {
-	pkRBytes, err := Marshall(pkR)
+	pkRBytes, err := Marshall(params, pkR)
 	if err != nil {
 		err = errors.New("incorrect receiver's public key")
 		return
@@ -183,7 +181,7 @@ func setupBase(params *Params, pkR crypto.PublicKey, shared, enc, info []byte) (
 // setupPSK is the common setup in the psk mode for the Initiator and the Receiver
 // Section 6.2. https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6.2
 func setupPsk(params *Params, pkR crypto.PublicKey, psk, pskID, shared, enc, info []byte) (key, nonce []byte, err error) {
-	pkRBytes, err := Marshall(pkR)
+	pkRBytes, err := Marshall(params, pkR)
 	if err != nil {
 		err = errors.New("incorrect receiver's public key")
 		return
@@ -198,12 +196,12 @@ func setupPsk(params *Params, pkR crypto.PublicKey, psk, pskID, shared, enc, inf
 // Section 6.3. https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6.3
 func setupAuth(params *Params, pkR, pkI crypto.PublicKey, shared, enc, info []byte) (key, nonce []byte, err error) {
 	// TODO: kemContext := append(pkE, pkR, pkI...)
-	pkRBytes, err := Marshall(pkR)
+	pkRBytes, err := Marshall(params, pkR)
 	if err != nil {
 		err = errors.New("incorrect receiver's public key")
 		return
 	}
-	pkIBytes, err := Marshall(pkI)
+	pkIBytes, err := Marshall(params, pkI)
 	if err != nil {
 		err = errors.New("incorrect initiator's public key")
 		return
