@@ -3,6 +3,8 @@
 # HPKE: Hybrid Public Key Encryption
 This project implements the [CFRG](https://irtf.org/cfrg)'s [draft-barnes-cfrg-hpke-01](https://datatracker.ietf.org/doc/draft-barnes-cfrg-hpke/), Hybrid Public Key Encryption (HPKE).
 
+This branch follows the original stateful implementation of HPKE. For stateless implementation (without a `counter`), check branch `simplified` that differs from the original draft in that it the randomly generates the nonce and appends in the beggining of the ciphertext rather than deriving from the shared secret.
+
 ## Authentication modes
 
 Referenced from [section 6](https://tools.ietf.org/html/draft-barnes-cfrg-hpke-01#section-6):
