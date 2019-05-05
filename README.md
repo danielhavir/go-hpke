@@ -46,7 +46,7 @@ import (
 )
 
 func main() {
-    params := hpke.GetParams(hpke.BASE_X25519_SHA256_XChaCha20Blake2bSIV)
+    params, _ := hpke.GetParams(hpke.BASE_X25519_SHA256_XChaCha20Blake2bSIV)
     
     random := rand.Reader
     prv, pub, err := hpke.GenerateKeypair(params, random)

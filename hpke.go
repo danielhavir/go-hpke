@@ -24,7 +24,7 @@ func GenerateKeyPair(params *Params, random io.Reader) (private crypto.PrivateKe
 
 // Marshall produces a fixed-length octet string encoding the public key "pk" checks whether a generic
 // interface matches the right type of a HPKE public key
-// performs casting from crypto.PrivateKey to ecdh.Point (when using public key of generic curves)
+// performs casting from crypto.PublicKey to ecdh.Point (when using public key of generic curves)
 // or byte array
 // Reference 1: https://github.com/aead/ecdh/blob/master/generic.go#L99-L121
 // Reference 2: https://github.com/aead/ecdh/blob/master/curve25519.go#L88-L108
@@ -60,6 +60,35 @@ func Marshall(params *Params, key interface{}) (keyBytes []byte, err error) {
 	return
 }
 
+// MarshallPrivate a fixed-length octet string encoding the private key
+func MarshallPrivate(params *Params, key interface{}) (keyBytes []byte, err error) {
+	switch t := key.(type) {
+	case []byte:
+		if len(t) == 32 {
+			keyBytes = make([]byte, 32)
+			copy(keyBytes[:], t)
+		} else if len(t) == 66 {
+			keyBytes = make([]byte, 66)
+			copy(keyBytes[:], t)
+		} else {
+			err = errors.New("incorrect private key")
+		}
+	case *[]byte:
+		if len(*t) == 32 {
+			keyBytes = make([]byte, 32)
+			copy(keyBytes[:], *t)
+		} else if len(*t) == 66 {
+			keyBytes = make([]byte, 66)
+			copy(keyBytes[:], *t)
+		} else {
+			err = errors.New("incorrect private key")
+		}
+	default:
+		err = errors.New("incorrect private key")
+	}
+	return
+}
+
 // helper function for marshalling a point on an elliptic curve into a byte array
 func marshallGeneric(key ecdh.Point, byteSize int) (pubBytes []byte) {
 	pubBytes = make([]byte, 2*byteSize)
@@ -70,8 +99,8 @@ func marshallGeneric(key ecdh.Point, byteSize int) (pubBytes []byte) {
 	return
 }
 
-// Unmarshall parses a fixed-length octet string to recover a public keyrestores
-// the public key from byte array after marshall
+// Unmarshall parses a fixed-length octet string to recover a public key
+// restores the public key from byte array after marshall
 func Unmarshall(params *Params, keyBytes []byte) (pub crypto.PublicKey, err error) {
 	switch params.ciphersuite {
 	case 1, 2, 5, 6, 7, 9:
@@ -79,6 +108,28 @@ func Unmarshall(params *Params, keyBytes []byte) (pub crypto.PublicKey, err erro
 	case 3, 4, 8:
 		if len(keyBytes) == 32 {
 			pub = keyBytes
+		} else {
+			err = errors.New("unknown size")
+		}
+	default:
+		err = errors.New("unknown ciphersuite")
+	}
+	return
+}
+
+// UnmarshallPrivate parses a fixed-length octet string to recover a private key
+// restores the private key from byte array after marshall
+func UnmarshallPrivate(params *Params, keyBytes []byte) (prv crypto.PrivateKey, err error) {
+	switch params.ciphersuite {
+	case 5, 6, 9:
+		if len(keyBytes) == 66 {
+			prv = keyBytes
+		} else {
+			err = errors.New("unknown size")
+		}
+	case 1, 2, 3, 4, 7, 8:
+		if len(keyBytes) == 32 {
+			prv = keyBytes
 		} else {
 			err = errors.New("unknown size")
 		}
