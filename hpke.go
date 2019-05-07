@@ -83,6 +83,20 @@ func MarshallPrivate(params *Params, key interface{}) (keyBytes []byte, err erro
 		} else {
 			err = errors.New("incorrect private key")
 		}
+	case [32]byte:
+		if len(t) == 32 {
+			keyBytes = make([]byte, 32)
+			copy(keyBytes[:], t[:])
+		} else {
+			err = errors.New("incorrect private key")
+		}
+	case *[32]byte:
+		if len(*t) == 32 {
+			keyBytes = make([]byte, 32)
+			copy(keyBytes[:], (*t)[:])
+		} else {
+			err = errors.New("incorrect private key")
+		}
 	default:
 		err = errors.New("incorrect private key")
 	}
