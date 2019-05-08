@@ -19,6 +19,8 @@ type Params struct {
 	nh          uint8
 	ciphersuite uint8
 	mode        uint8
+	PubKeySize  int
+	PrvKeySize  int
 }
 
 const (
@@ -71,6 +73,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          32,
 			ciphersuite: 1,
 			mode:        mode_base,
+			PubKeySize:  64,
+			PrvKeySize:  32,
 		}, nil
 	case BASE_P256_SHA256_ChaCha20Poly1305:
 		return &Params{
@@ -81,6 +85,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          32,
 			ciphersuite: 2,
 			mode:        mode_base,
+			PubKeySize:  64,
+			PrvKeySize:  32,
 		}, nil
 	case BASE_P256_SHA256_XChaCha20Blake2bSIV:
 		return &Params{
@@ -91,6 +97,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          32,
 			ciphersuite: 7,
 			mode:        mode_base,
+			PubKeySize:  64,
+			PrvKeySize:  32,
 		}, nil
 	case PSK_P256_SHA256_AES_GCM_128:
 		return &Params{
@@ -101,6 +109,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          32,
 			ciphersuite: 1,
 			mode:        mode_psk,
+			PubKeySize:  64,
+			PrvKeySize:  32,
 		}, nil
 	case PSK_P256_SHA256_ChaCha20Poly1305:
 		return &Params{
@@ -111,6 +121,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          32,
 			ciphersuite: 2,
 			mode:        mode_psk,
+			PubKeySize:  64,
+			PrvKeySize:  32,
 		}, nil
 	case PSK_P256_SHA256_XChaCha20Blake2bSIV:
 		return &Params{
@@ -121,6 +133,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          32,
 			ciphersuite: 7,
 			mode:        mode_psk,
+			PubKeySize:  64,
+			PrvKeySize:  32,
 		}, nil
 	case AUTH_P256_SHA256_AES_GCM_128:
 		return &Params{
@@ -131,6 +145,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          32,
 			ciphersuite: 1,
 			mode:        mode_auth,
+			PubKeySize:  64,
+			PrvKeySize:  32,
 		}, nil
 	case AUTH_P256_SHA256_ChaCha20Poly1305:
 		return &Params{
@@ -141,6 +157,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          32,
 			ciphersuite: 2,
 			mode:        mode_auth,
+			PubKeySize:  64,
+			PrvKeySize:  32,
 		}, nil
 	case AUTH_P256_SHA256_XChaCha20Blake2bSIV:
 		return &Params{
@@ -151,6 +169,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          32,
 			ciphersuite: 7,
 			mode:        mode_auth,
+			PubKeySize:  64,
+			PrvKeySize:  32,
 		}, nil
 	case BASE_X25519_SHA256_AES_GCM_128:
 		return &Params{
@@ -161,6 +181,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          32,
 			ciphersuite: 3,
 			mode:        mode_base,
+			PubKeySize:  32,
+			PrvKeySize:  32,
 		}, nil
 	case BASE_X25519_SHA256_ChaCha20Poly1305:
 		return &Params{
@@ -171,6 +193,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          32,
 			ciphersuite: 4,
 			mode:        mode_base,
+			PubKeySize:  32,
+			PrvKeySize:  32,
 		}, nil
 	case BASE_X25519_SHA256_XChaCha20Blake2bSIV:
 		return &Params{
@@ -181,6 +205,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          32,
 			ciphersuite: 8,
 			mode:        mode_base,
+			PubKeySize:  32,
+			PrvKeySize:  32,
 		}, nil
 	case PSK_X25519_SHA256_AES_GCM_128:
 		return &Params{
@@ -191,6 +217,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          32,
 			ciphersuite: 3,
 			mode:        mode_psk,
+			PubKeySize:  32,
+			PrvKeySize:  32,
 		}, nil
 	case PSK_X25519_SHA256_ChaCha20Poly1305:
 		return &Params{
@@ -201,6 +229,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          32,
 			ciphersuite: 4,
 			mode:        mode_psk,
+			PubKeySize:  32,
+			PrvKeySize:  32,
 		}, nil
 	case PSK_X25519_SHA256_XChaCha20Blake2bSIV:
 		return &Params{
@@ -211,6 +241,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          32,
 			ciphersuite: 8,
 			mode:        mode_psk,
+			PubKeySize:  32,
+			PrvKeySize:  32,
 		}, nil
 	case AUTH_X25519_SHA256_AES_GCM_128:
 		return &Params{
@@ -221,6 +253,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          32,
 			ciphersuite: 3,
 			mode:        mode_auth,
+			PubKeySize:  32,
+			PrvKeySize:  32,
 		}, nil
 	case AUTH_X25519_SHA256_ChaCha20Poly1305:
 		return &Params{
@@ -231,6 +265,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          32,
 			ciphersuite: 4,
 			mode:        mode_auth,
+			PubKeySize:  32,
+			PrvKeySize:  32,
 		}, nil
 	case AUTH_X25519_SHA256_XChaCha20Blake2bSIV:
 		return &Params{
@@ -241,6 +277,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          32,
 			ciphersuite: 8,
 			mode:        mode_auth,
+			PubKeySize:  32,
+			PrvKeySize:  32,
 		}, nil
 	case BASE_P521_SHA512_AES_GCM_256:
 		return &Params{
@@ -250,6 +288,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          64,
 			ciphersuite: 5,
 			mode:        mode_base,
+			PubKeySize:  132,
+			PrvKeySize:  66,
 		}, nil
 	case BASE_P521_SHA512_ChaCha20Poly1305:
 		return &Params{
@@ -259,6 +299,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          64,
 			ciphersuite: 6,
 			mode:        mode_base,
+			PubKeySize:  132,
+			PrvKeySize:  66,
 		}, nil
 	case BASE_P521_SHA256_XChaCha20Blake2bSIV:
 		return &Params{
@@ -268,6 +310,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          32,
 			ciphersuite: 9,
 			mode:        mode_base,
+			PubKeySize:  132,
+			PrvKeySize:  66,
 		}, nil
 	case PSK_P521_SHA512_AES_GCM_256:
 		return &Params{
@@ -277,6 +321,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          64,
 			ciphersuite: 5,
 			mode:        mode_psk,
+			PubKeySize:  132,
+			PrvKeySize:  66,
 		}, nil
 	case PSK_P521_SHA512_ChaCha20Poly1305:
 		return &Params{
@@ -286,6 +332,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          64,
 			ciphersuite: 6,
 			mode:        mode_psk,
+			PubKeySize:  132,
+			PrvKeySize:  66,
 		}, nil
 	case PSK_P521_SHA256_XChaCha20Blake2bSIV:
 		return &Params{
@@ -295,6 +343,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          32,
 			ciphersuite: 9,
 			mode:        mode_psk,
+			PubKeySize:  132,
+			PrvKeySize:  66,
 		}, nil
 	case AUTH_P521_SHA512_AES_GCM_256:
 		return &Params{
@@ -304,6 +354,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          64,
 			ciphersuite: 5,
 			mode:        mode_auth,
+			PubKeySize:  132,
+			PrvKeySize:  66,
 		}, nil
 	case AUTH_P521_SHA512_ChaCha20Poly1305:
 		return &Params{
@@ -313,6 +365,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          64,
 			ciphersuite: 6,
 			mode:        mode_auth,
+			PubKeySize:  132,
+			PrvKeySize:  66,
 		}, nil
 	case AUTH_P521_SHA256_XChaCha20Blake2bSIV:
 		return &Params{
@@ -322,6 +376,8 @@ func GetParams(mode byte) (*Params, error) {
 			nh:          32,
 			ciphersuite: 9,
 			mode:        mode_auth,
+			PubKeySize:  132,
+			PrvKeySize:  66,
 		}, nil
 	default:
 		return nil, errors.New("unknown mode")
