@@ -1,4 +1,4 @@
-![stability-wip](https://img.shields.io/badge/stability-work_in_progress-lightgrey.svg) [![build-passing](https://travis-ci.org/danielhavir/go-hpke.svg?branch=master)](https://travis-ci.org/danielhavir/go-hpke)
+![stability-wip](https://img.shields.io/badge/stability-work_in_progress-lightgrey.svg) [![build-passing](https://travis-ci.org/danielhavir/go-hpke.svg?branch=master)](https://travis-ci.org/danielhavir/go-hpke) [![Go Report Card](https://goreportcard.com/badge/github.com/danielhavir/go-hpke)](https://goreportcard.com/report/github.com/danielhavir/go-hpke)
 
 # HPKE: Hybrid Public Key Encryption
 This project implements the [CFRG](https://irtf.org/cfrg)'s [draft-barnes-cfrg-hpke-01](https://datatracker.ietf.org/doc/draft-barnes-cfrg-hpke/), Hybrid Public Key Encryption (HPKE). **This branch differs from the original draft** in the nonce generation for AEAD. Rather than stateful deriving of the nonce, this branch randomly generates the nonce and appends in the beggining of the ciphertext . For the original stateful implementation, look for branch `draft-01`.
