@@ -41,8 +41,9 @@ Examples: BASE_X25519_SHA256_AES_GCM_128, PSK_P256_SHA256_ChaCha20Poly1305, AUTH
 package main
 
 import (
-    "fmt"
+    "bytes"
     "crypto/rand"
+    "fmt"
 
     hpke "github.com/danielhavir/go-hpke"
 )
@@ -51,12 +52,12 @@ func main() {
     params, _ := hpke.GetParams(hpke.BASE_X25519_SHA256_XChaCha20Blake2bSIV)
 
     random := rand.Reader
-    prv, pub, err := hpke.GenerateKeypair(params, random)
+    prv, pub, err := hpke.GenerateKeyPair(params, random)
     if err != nil {
         panic(fmt.Sprintf("failed to generate key pair: %s\n", err))
     }
 
-    msg := ...
+    msg := []byte("Oh so very secret!")
 
     ciphertext, ephemeral, err := hpke.EncryptBase(params, random, pub, msg, nil)
     if err != nil {
